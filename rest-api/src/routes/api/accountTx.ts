@@ -16,7 +16,6 @@ web3.setProvider(configuration.provider)
 // return all transactions history for account address
 router.get('/:address', async (req, res, next) => {
   try {
- logger.info('999999999999999999999999999')    
   let result = await dbUtils.getAccountAsync(req.params.address)
   return res.json(
     {
