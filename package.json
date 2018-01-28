@@ -1,0 +1,33 @@
+{
+  "name": "supernode-rest-api",
+  "version": "1.0.0",
+  "description": "Ethereum super node rest api server",
+  "main": "app.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-indexer": "node bin/indexer/src/app.js",
+    "start-rest": "node bin/rest-api/src/app.js",
+    "dev-index": "npm run build && npm run start-indexer",
+    "dev-rest": "npm run build && npm run start-rest"
+  },
+  "author": "Ady Shimony",
+  "license": "ISC",
+  "homepage": "https://github.com/adyshimony/ether-super-node#readme",
+  "dependencies": {
+    "@parity/api": "^2.1.16",
+    "@types/express": "^4.0.36",
+    "@types/winston": "^2.3.3",
+    "express": "^4.16.2",
+    "express-winston": "^2.4.0",
+    "flow-bin": "^0.63.1",
+    "multimap": "^1.0.2",
+    "nano": "^6.4.2",
+    "web3": "^1.0.0-beta.27",
+    "winston": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^7.0.39",
+    "typescript": "^2.4.1"
+  }
+}
