@@ -1,6 +1,6 @@
-import * as express from 'express';
+import * as express from 'express'
 import * as logging from './bootstrap/logging'
-import * as logger from 'winston';
+import * as logger from 'winston'
 import * as applicationRoutes from './bootstrap/routes'
 import * as db from './bootstrap/db'
 import {configuration} from './config/config'

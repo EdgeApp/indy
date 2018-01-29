@@ -9,7 +9,10 @@
     "start-indexer": "node bin/indexer/src/app.js",
     "start-rest": "node bin/rest-api/src/app.js",
     "dev-index": "npm run build && npm run start-indexer",
-    "dev-rest": "npm run build && npm run start-rest"
+    "dev-rest": "npm run build && npm run start-rest",
+    "standard-rest-api": "standard \"./rest-api/**/*.ts\"",
+    "standard-indexer":  "standard \"./indexer/**/*.ts\"",
+    "standard-common": "standard \"./common/**/*.ts\""
   },
   "author": "Ady Shimony",
   "license": "ISC",
@@ -28,6 +31,18 @@
   },
   "devDependencies": {
     "@types/node": "^7.0.39",
-    "typescript": "^2.4.1"
+    "eslint-plugin-typescript": "^0.8.1",
+    "standard": "^10.0.3",
+    "typescript": "^2.4.1",
+    "typescript-eslint-parser": "^12.0.0"
+  },
+  "standard": {
+    "parser": "typescript-eslint-parser",
+    "plugins": [
+      "typescript"
+    ],
+    "ignore": [
+    "accountTx.ts"
+  ]    
   }
 }

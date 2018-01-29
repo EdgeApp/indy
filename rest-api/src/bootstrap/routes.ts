@@ -1,14 +1,11 @@
-import * as  logger from 'winston'
+import * as logger from 'winston'
 
-
-export  function load (app) {
-    setApplicationRoutes(app)
-
-    app.use(function (req, res, next) {
-      res.status(404).send(`Opps! API not found, check your path: "${req.path}".`)
-    })
+export function load (app) {
+  setApplicationRoutes(app)
+  app.use(function (req, res, next) {
+    res.status(404).send(`Opps! API not found, check your path: "${req.path}".`)
+  })
 }
-
 
 function setApplicationRoutes (app) {
   logger.info('setApplicationRoutes')
@@ -21,8 +18,3 @@ function setApplicationRoutes (app) {
   let tokenTxContoller = require('../routes/api/tokenTx')
   app.use('/token', tokenTxContoller)
 }
-
-
-
-
-

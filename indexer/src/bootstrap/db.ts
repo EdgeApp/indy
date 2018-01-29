@@ -2,13 +2,11 @@ import {configuration} from '../config/config'
 import {dbHandler} from '../utils/couchdb'
 import * as logger from 'winston'
 
-export function CreateDataBases() : void {
+export function CreateDataBases () : void {
   logger.info('creating databases')
- 
   initDB()
   initCacheDB()
 }
-
 
 export function initDB () : void {
   logger.info(`getting database ${configuration.DBName}`)
@@ -27,7 +25,6 @@ export function initDB () : void {
     }
   })
 }
-
 
 export function initCacheDB () : void {
   logger.info(`getting database ${configuration.CacheDBName}`)

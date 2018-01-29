@@ -1,6 +1,6 @@
-import * as  express from 'express'
-import * as  logger from 'winston'
-import * as  blockUtils from '../../utils/blockUtils'
+import * as express from 'express'
+import * as logger from 'winston'
+import * as blockUtils from '../../utils/blockUtils'
 import { configuration } from '../../config/config'
 
 const router = express.Router()
@@ -12,7 +12,6 @@ web3.setProvider(configuration.provider)
 
 // temporary implementation - will be taken from cache db
 router.get('/txs/:address?', async (req, res, next) => {
-
   let address = req.params.address
 
   let block = await web3.eth.getBlock('pending')
@@ -31,9 +30,10 @@ router.get('/txs/:address?', async (req, res, next) => {
   }
   return res.json(
     {
-      "status": "1",
-      "message": "OK",      
-      'result' : result
-    })})
+      'status': '1',
+      'message': 'OK',
+      'result': result
+    })
+})
 
 module.exports = router

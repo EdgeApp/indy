@@ -1,19 +1,16 @@
-import * as  logger from 'winston'
+import * as logger from 'winston'
 import { configuration } from '../config/config'
 import { Account } from '../../../common/models/account'
 import { Transaction } from '../../../common/models/transaction'
 
-
 const Web3 = require('web3')
 const web3 = new Web3()
-
 web3.setProvider(configuration.provider)
 
-// for every block, fetch all transactions. 
+// for every block, fetch all transactions.
 // for every transaction, create account for every FROM / TO address
 // collect the transactions for each account
-export async function getAccountsAsync(startBlock: number, endBlock: number): Promise<Map<string, Account>> {
-
+export async function getAccountsAsync (startBlock: number, endBlock: number): Promise<Map<string, Account>> {
   let result = []
   let accountsMap = new Map()
   let startIndex = startBlock
@@ -50,22 +47,18 @@ export async function getAccountsAsync(startBlock: number, endBlock: number): Pr
 }
 
 // fetch transactions body for each block
-export async function getTransactionsAsync(block: any, address: string): Promise<Array<any>> {
+export async function getTransactionsAsync (block: any, address: string): Promise<Array<any>> {
   try {
     let result
     if (block && block.transactions) {
       logger.info(`block # ${block.number} transactions count: ${block.transactions.length}.`)
       let transactionPromises = []
-      
       block.transactions.forEach((t) => transactionPromises.push(web3.eth.getTransaction(t)))
       let resTransactions = await Promise.all(transactionPromises)
-      // filter 
+      // filter
       resTransactions = address ? resTransactions.filter((transaction) => (transaction.from === address || transaction.to === address)) : resTransactions
-      
-      convertTransactionFormat(block, resTransactions)
-
+      convertTransactionFormat(block, resTransactions) // use this - TODO
       result = (address && !resTransactions.length) ? `no pending transactions for address ${address}` : resTransactions
-      
       //logger.info(`results: ${JSON.stringify(result)}.`)
     } else {
       result = 'no pending transactions'
@@ -77,20 +70,15 @@ export async function getTransactionsAsync(block: any, address: string): Promise
   }
 }
 
-
-export async function convertTransactionFormat(block: any, web3transactions: any[]) {
-
+export async function convertTransactionFormat (block: any, web3transactions: any[]) {
   logger.info('convertTransactionFormat.')
-  
   let transactions = []
-  for(let index = 0; index < web3transactions.length ; index++){
+  for (let index = 0; index < web3transactions.length; index++) {
     var receipt = web3.eth.getTransactionReceipt(web3transactions[index].hash)
     let transaction = new Transaction(web3transactions[index], block, receipt)
     logger.info(`receipt: ${JSON.stringify(receipt)}.`)
     logger.info(`transaction: ${JSON.stringify(transaction)}.`)
-    
-    transactions.push( transaction)
+    transactions.push(transaction)
   }
-
-  return  transactions
+  return transactions
 }

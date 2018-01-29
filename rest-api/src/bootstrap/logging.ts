@@ -1,11 +1,10 @@
 
 import * as logger from 'winston'
-import * as expressLogger from 'express-winston';
-import { configuration } from '../config/config';
+import * as expressLogger from 'express-winston'
+import { configuration } from '../config/config'
 
-
-export function load(app) {
-  initializeLogging(app);
+export function load (app) {
+  initializeLogging(app)
 }
 
 function initializeLogging (app) {
