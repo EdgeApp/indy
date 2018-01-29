@@ -40,9 +40,6 @@
     "parser": "typescript-eslint-parser",
     "plugins": [
       "typescript"
-    ],
-    "ignore": [
-    "accountTx.ts"
-  ]    
+    ]   
   }
 }

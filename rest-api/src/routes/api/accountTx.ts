@@ -8,13 +8,13 @@ router.get('/:address', async (req, res, next) => {
   try {
     let result = await dbUtils.getAccountAsync(req.params.address)
     return res.json(
-    {
-      'status': '1',
-      'message': 'OK',
-      'result': result
-    })
-  } catch {
-      return res.json(
+      {
+        'status': '1',
+        'message': 'OK',
+        'result': result
+      })
+  } catch (error) {
+    return res.json(
       {
         'status': '0',
         'message': 'ERROR',

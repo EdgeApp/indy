@@ -70,4 +70,3 @@ export async function getTransactionsRaw (block, address) {
     return null
   }
 }
-
