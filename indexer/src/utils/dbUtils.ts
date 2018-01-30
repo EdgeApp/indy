@@ -11,6 +11,7 @@ export async function saveAccountAsync (account: any) {
     if (!error) {
       logger.info(`account # ${account.address} exist, updating revision`)
       account._rev = existing._rev
+      account = account.transactions.concat(existing.transactions)
     }
     historyDb.insert(account, account.address, function (error, response) {
       if (!error) {
