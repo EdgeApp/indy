@@ -47,37 +47,37 @@ export async function getAccountsAsync (startBlock: number, endBlock: number): P
 }
 
 // fetch transactions body for each block
-export async function getTransactionsAsync (block: any, address: string): Promise<Array<any>> {
+export async function getTransactionsAsync (block, address) : Promise<Array<Transaction>> {
   try {
-    let result
+    let transactionCount = 0
     if (block && block.transactions) {
-      logger.info(`block # ${block.number} transactions count: ${block.transactions.length}.`)
+      logger.info(`block transactions count: ${block.transactions.length}.`)
+
       let transactionPromises = []
       block.transactions.forEach((t) => transactionPromises.push(web3.eth.getTransaction(t)))
+
       let resTransactions = await Promise.all(transactionPromises)
-      // filter
       resTransactions = address ? resTransactions.filter((transaction) => (transaction.from === address || transaction.to === address)) : resTransactions
-      convertTransactionFormat(block, resTransactions) // use this - TODO
-      result = (address && !resTransactions.length) ? `no pending transactions for address ${address}` : resTransactions
-      //logger.info(`results: ${JSON.stringify(result)}.`)
-    } else {
-      result = 'no pending transactions'
-      logger.info('no pending transactions')
-    }
-    return result
+
+      let transactions = await convertTransactionFormatAsync(block, resTransactions)
+      // logger.info(`results: ${JSON.stringify(transactions)}.`)
+      return transactions
+    } 
   } catch (error) {
     return null
   }
 }
 
-export async function convertTransactionFormat (block: any, web3transactions: any[]) {
-  logger.info('convertTransactionFormat.')
+export async function convertTransactionFormatAsync (block: any, web3transactions: any[]) : Promise<Array<Transaction>> {
+  logger.info('convertTransactionFormat')
   let transactions = []
+  let highestBlock = await web3.eth.getBlock('pending')
+  let highestBlockNumber = highestBlock.number
   for (let index = 0; index < web3transactions.length; index++) {
-    var receipt = web3.eth.getTransactionReceipt(web3transactions[index].hash)
-    let transaction = new Transaction(web3transactions[index], block, receipt)
-    logger.info(`receipt: ${JSON.stringify(receipt)}.`)
-    logger.info(`transaction: ${JSON.stringify(transaction)}.`)
+    var receipt = await web3.eth.getTransactionReceipt(web3transactions[index].hash)
+    let transaction = new Transaction(web3transactions[index], block, receipt, highestBlockNumber)
+    //logger.info(`receipt: ${JSON.stringify(receipt)}.`)
+    //logger.info(`transaction: ${JSON.stringify(transaction)}.`)
     transactions.push(transaction)
   }
   return transactions

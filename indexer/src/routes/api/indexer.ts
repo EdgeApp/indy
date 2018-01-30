@@ -8,7 +8,7 @@ router.get('/start/:startBlock?/:endBlock?', async (req, res, next) => {
   let startBlock = Number(req.params.startBlock)
   let endBlock = Number(req.params.endBlock)
 
-  logger.info('starting indexer !!!')
+  logger.info(`starting index from block: ${startBlock} to block ${endBlock}`)
   await indexHistory.startIndex(startBlock, endBlock)
 })
 

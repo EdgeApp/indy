@@ -33,9 +33,11 @@ export async function convertTransactionFormat (block: any, web3transactions: an
   logger.info('convertTransactionFormat.')
   let transactions = []
 
+  let highestBlock = await web3.eth.getBlock('pending')
+  let highestBlockNumber = highestBlock.number
   for (let index = 0; index < web3transactions.length; index++) {
     var receipt = await web3.eth.getTransactionReceipt(web3transactions[index].hash)
-    let transaction = new Transaction(web3transactions[index], block, receipt)
+    let transaction = new Transaction(web3transactions[index], block, receipt, highestBlockNumber)
     logger.info(`receipt: ${JSON.stringify(receipt)}.`)
     logger.info(`transaction: ${JSON.stringify(transaction)}.`)
     transactions.push(transaction)

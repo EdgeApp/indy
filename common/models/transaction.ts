@@ -1,11 +1,13 @@
 
+
+
 export class Transaction {
-  constructor (web3Transaction: any, block: any, transactionReceipt: any) {
+  constructor (web3Transaction: any, block: any, transactionReceipt: any, highestBlock: number) {
     // block
     this.blockNumber = block.number
     this.timeStamp = block.timestamp
     this.blockHash = block.hash
-    this.confirmations = block.number - web3Transaction.blockNumber
+    this.confirmations = highestBlock - web3Transaction.blockNumber
     // transaction
     this.hash = web3Transaction.hash
     this.nonce = web3Transaction.nonce
@@ -19,9 +21,11 @@ export class Transaction {
     // receipt
 
     if(block.number >= 4370000 ) // Byzantium fork add status indicator
-      this.isError = transactionReceipt.status  
+      // status 1 means transaction is ok, no error  
+      this.isError = transactionReceipt.status == 1 ? 0 : 1  
     else 
-      this.isError = transactionReceipt.gas == transactionReceipt.gasUsed
+      // if gas == gas used, there is transaction error  
+      this.isError = transactionReceipt.gas == transactionReceipt.gasUsed ? 1 : 0 
 
     this.gasUsed = transactionReceipt.gasUsed
     this.cumulativeGasUsed = transactionReceipt.cumulativeGasUsed
@@ -49,5 +53,5 @@ export class Transaction {
   contractAddress: string
   cumulativeGasUsed: number
   gasUsed: number
-  isError: boolean
+  isError: number
 }
