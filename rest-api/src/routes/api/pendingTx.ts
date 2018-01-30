@@ -17,21 +17,29 @@ router.get('/txs/:address?', async (req, res, next) => {
   let block = await web3.eth.getBlock('pending')
   logger.info(`retrieving pending block # ${block.number}.`)
 
-  let result
+  let result = []
+  let status = 0
+  let message = `error fetching block # ${block}`
+  let count = 0
+  
   if (block) {
     try {
       result = await blockUtils.getTransactions(block, address)
+      count = result.length
+      message = 'OK'
+      status = 1
     } catch (error) {
+      message = 'FAIL'   
+      result = null  
       logger.info(error)
     }
-  } else {
-    result = `error fetching block # ${block}`
-    logger.info(result)
-  }
+  } 
+   
   return res.json(
     {
-      'status': '1',
-      'message': 'OK',
+      'status': status,
+      'message': message,
+      'count': count,
       'result': result
     })
 })
