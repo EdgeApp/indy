@@ -29,7 +29,7 @@ function initializeLogging (app) {
     prettyPrint: true,
     colorize: true,
     silent: false,
-    timestamp: false,
+    timestamp: configuration.LogTimeStampConsole,
     useConsole: true
   })
 
@@ -41,9 +41,9 @@ function initializeLogging (app) {
     dirname: logPath,
     handleExceptions: true,
     json: true,
-    logstash: true,
+    timestamp: false,
     maxsize: 5 * 1024 * 1024, // 5 MB
-    maxFiles: 5,
+    maxFiles: 10,
     colorize: false
   })
 

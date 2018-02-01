@@ -23,7 +23,7 @@ return new Promise<void>((resolve, reject) => {
        // logger.info(`account # ${account.address} inserted`)
         resolve()
       } else {
-        logger.info(`*********************error creating account ************************** # ${account.address}, ${error}`)
+        logger.log('error', `error creating account # ${account.address}, ${error}`)
         reject(new Error(`error creating account # ${account.address}, ${error}`))
       }
     })
@@ -45,23 +45,23 @@ export async function saveAccountsAsync (accounts: Map<string, Account>) : Promi
 export async function saveIndexerSettingsAsync (settings: any) : Promise<void> {
   logger.info(`saving indexer settings  ${JSON.stringify(settings)}`)
   return new Promise<void>((resolve, reject) => {
-  settingsDb.get(settings.id, function (error, existing) {
-    if (!error) {
-      logger.info(`settings for indexer ${settings.id} exist, updating revision`)
-      settings._rev = existing._rev
-      resolve()
-    }
-    settingsDb.insert(settings, settings.id, function (error, response) {
+    settingsDb.get(settings.id, function (error, existing) {
       if (!error) {
-        logger.info(`settings for indexer : ${settings.id} inserted`)
+        logger.info(`settings for indexer ${settings.id} exist, updating revision`)
+        settings._rev = existing._rev
         resolve()
-      } else {
-        logger.info(`error creating settings for indexer : ${settings.id}, ${error}`)
-        reject(new Error(`********************error creating settings for indexer*********************** : ${settings.id}, ${error}`))
       }
+      settingsDb.insert(settings, settings.id, function (error, response) {
+        if (!error) {
+          logger.info(`settings for indexer : ${settings.id} inserted`)
+          resolve()
+        } else {
+          logger.log('error',`error creating settings for indexer : ${settings.id}, ${error}`)
+          reject(new Error(`error creating settings for indexer : ${settings.id}, ${error}`))
+        }
+      })
     })
   })
-})
 }
 
 export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
@@ -72,7 +72,7 @@ export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
         logger.info(`settings for indexer ${indexerID} found, ${JSON.stringify(existing)}`)
         resolve(existing)
       } else {
-        logger.info(`error fetching settings for indexer ${indexerID}`)
+        logger.log('error', `error fetching settings for indexer ${indexerID}`)
         reject(new Error(`error fetching settings for indexer ${indexerID}`))
       }
     })

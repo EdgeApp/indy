@@ -11,7 +11,7 @@
     "dev-index": "npm run build && npm run start-indexer",
     "dev-rest": "npm run build && npm run start-rest",
     "standard-rest-api": "standard \"./rest-api/**/*.ts\"",
-    "standard-indexer":  "standard \"./indexer/**/*.ts\"",
+    "standard-indexer": "standard \"./indexer/**/*.ts\"",
     "standard-common": "standard \"./common/**/*.ts\""
   },
   "author": "Ady Shimony",
@@ -40,6 +40,6 @@
     "parser": "typescript-eslint-parser",
     "plugins": [
       "typescript"
-    ]   
+    ]
   }
 }
