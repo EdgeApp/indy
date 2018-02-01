@@ -41,7 +41,7 @@ function initializeLogging (app) {
     dirname: logPath,
     handleExceptions: true,
     json: true,
-    timestamp: false,
+    timestamp: true,
     maxsize: 5 * 1024 * 1024, // 5 MB
     maxFiles: 10,
     colorize: false
