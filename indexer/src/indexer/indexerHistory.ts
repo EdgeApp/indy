@@ -30,7 +30,7 @@ export class IndexerHistory{
         // first chunk, no settings in db yet
         logger.info(`startIndexerProcess, first chunk, block # 0 to block # ${configuration.BlockChunkSize}`)
         this.indexSetttings.startBlockNumber = 46147 // no transactions before this block, we can index from here
-        this.indexSetttings.endBlockNumber = 100000  
+        this.indexSetttings.endBlockNumber = 99000  
 
         await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
         await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber) 
@@ -67,7 +67,7 @@ export class IndexerHistory{
 
   async indexBlockRange (startBlock: number, endBlock: number) : Promise<void> {
     let acccounts = await blockchainUtils.getAccountsAsync(startBlock, endBlock)
-    logger.info(`total accounts # ${acccounts.size} from block # ${startBlock} to block #  ${endBlock}.`)
+    logger.info(`total accounts ${acccounts.size} from block #${startBlock} to block #${endBlock}.`)
     await dbUtils.saveAccountsAsync(acccounts)
   }
 

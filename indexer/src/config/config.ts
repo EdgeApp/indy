@@ -10,7 +10,7 @@ export class Config {
   get DBUrl () : string { return 'http://admin:123456@localhost:5984' }
   get Port () : string { return '3001' }
   get BlockReqeusts (): number { return 50 }
-  get BlockStep (): number { return 100 }
+  get BlockStep (): number { return 1000 }
   get LogFileName (): string { return 'supernode-indexer.log' }
   get BlockChunkSize (): number { return 50000 }
   get MaxEphemeralForkBlocks (): number { return 12 }
