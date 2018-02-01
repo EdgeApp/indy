@@ -49,7 +49,6 @@ export async function saveIndexerSettingsAsync (settings: any) : Promise<void> {
       if (!error) {
         logger.info(`settings for indexer ${settings.id} exist, updating revision`)
         settings._rev = existing._rev
-        resolve()
       }
       settingsDb.insert(settings, settings.id, function (error, response) {
         if (!error) {
