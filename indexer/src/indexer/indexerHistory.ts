@@ -20,45 +20,51 @@ export class IndexerHistory{
     logger.info('startIndexerProcess')
   
 
-    let highestBlock : any
-    let highestBlockNumber : number
 
-    do {
-      try {
-        this.indexSetttings = await dbUtils.getIndexerSettingsAsync(this.indexSetttings.id)
-        var startTime = process.hrtime();
-        let last = this.indexSetttings.lastBlockNumber
-        await this.startIndex(this.indexSetttings.lastBlockNumber, this.indexSetttings.endBlockNumber) 
-        var elapsedSeconds = this.parseHrtimeToSeconds(process.hrtime(startTime));
-        logger.info(`startIndexerProcess method, ${this.indexSetttings.endBlockNumber - last} blocks, duration in sec: ${elapsedSeconds}`)          
-      } catch (error) {
-        // first chunk, no settings in db yet
-        logger.info(`startIndexerProcess, first chunk, block # 0 to block # ${configuration.BlockChunkSize}`)
-        this.indexSetttings.startBlockNumber = 46147 // no transactions before this block, we can index from here
-        this.indexSetttings.endBlockNumber = 99000  
-        await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
-        await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber) 
-      }
+
+    // first time
+    try {
+      this.indexSetttings = await dbUtils.getIndexerSettingsAsync(this.indexSetttings.id)
+      var startTime = process.hrtime();
+      let last = this.indexSetttings.lastBlockNumber
+      await this.startIndex(this.indexSetttings.lastBlockNumber, this.indexSetttings.endBlockNumber) 
+      var elapsedSeconds = this.parseHrtimeToSeconds(process.hrtime(startTime));
+      logger.info(`startIndexerProcess method, ${this.indexSetttings.endBlockNumber - last} blocks, duration in sec: ${elapsedSeconds}`)          
+    } catch (error) {
+      // first chunk, no settings in db yet
+      logger.info(`startIndexerProcess, first chunk, block # 0 to block # ${configuration.BlockChunkSize}`)
+      this.indexSetttings.startBlockNumber = 45000 // no transactions before this block, we can index from here
+      this.indexSetttings.endBlockNumber = 46000  
+      await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+      await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber) 
+    }
+    
+    let highestBlock : any
+    let highestBlockNumber : number      
+
+    do {      
       highestBlock = await this.web3.eth.getBlock('pending')
       highestBlockNumber = highestBlock.number - configuration.MaxEphemeralForkBlocks
       logger.info(`startIndexerProcess, highstBlock: ${highestBlockNumber}`)
-      
-      this.indexSetttings.startBlockNumber = this.indexSetttings.endBlockNumber + 1
+
+      this.indexSetttings.startBlockNumber = this.indexSetttings.endBlockNumber 
       this.indexSetttings.lastBlockNumber = this.indexSetttings.startBlockNumber
       this.indexSetttings.endBlockNumber += configuration.BlockChunkSize
       if(this.indexSetttings.endBlockNumber > highestBlockNumber)
         this.indexSetttings.endBlockNumber = highestBlockNumber
 
+      var startTime = process.hrtime();
+      await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber) 
+      var elapsedSeconds = this.parseHrtimeToSeconds(process.hrtime(startTime));
+      logger.info(`startIndexerProcess method, ${this.indexSetttings.endBlockNumber - this.indexSetttings.startBlockNumber} blocks, duration in sec: ${elapsedSeconds}`)                
       logger.info(`startIndexerProcess, indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
-        
 
-      await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
-    } while(this.indexSetttings.endBlockNumber <= highestBlockNumber)
+    } while(this.indexSetttings.endBlockNumber < highestBlockNumber)
   }
 
   async startIndex (startBlock: number, endBlock: number) : Promise<void> {
     logger.info(`startIndex method, startBlock # ${startBlock} to endBlock # ${endBlock}`)
-    while (startBlock <= endBlock) {
+    while (startBlock < endBlock) {
       let start = startBlock
       let end = ((startBlock + configuration.BlockStep) <= endBlock) ? startBlock + configuration.BlockStep : endBlock
     
@@ -68,6 +74,9 @@ export class IndexerHistory{
       logger.info(`startIndex method, ${configuration.BlockStep} blocks, duration in sec: ${elapsedSeconds}`)
       
       startBlock += configuration.BlockStep
+      if(startBlock >= endBlock)
+        startBlock = endBlock
+
       this.indexSetttings.lastBlockNumber = end
       await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
     }

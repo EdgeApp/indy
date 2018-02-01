@@ -15,7 +15,7 @@ export async function getAccountsAsync (startBlock: number, endBlock: number): P
   let accountsMap = new Map()
   let startIndex = startBlock
 
-  while (startIndex <= endBlock) {
+  while (startIndex < endBlock) {
     let blocksPromises = []
     for (let index = 0; index < configuration.BlockReqeusts && startIndex <= endBlock; index++) {
       blocksPromises.push(web3.eth.getBlock(startIndex++))
@@ -50,7 +50,7 @@ export async function getTransactionsAsync (block, address) : Promise<Array<Tran
   try {
     let transactionCount = 0
     if (block && block.transactions) {
-    //  logger.info(`block #${block.number}, transactions count ${block.transactions.length}.`)
+      logger.info(`block #${block.number}, transactions count ${block.transactions.length}.`)
       let transactionPromises = []
       block.transactions.forEach((t) => transactionPromises.push(web3.eth.getTransaction(t)))
       let resTransactions = await Promise.all(transactionPromises)
