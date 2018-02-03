@@ -48,7 +48,7 @@ export class IndexerHistory{
     do {      
       highestBlock = await this.web3.eth.getBlock('pending')
       highestBlockNumber = highestBlock.number - configuration.MaxEphemeralForkBlocks
-      highestBlockNumber = 76000 // temp patch
+      // highestBlockNumber = 76000 // temp patch fro tests
 
       logger.info(`startIndexerProcess, highstBlock: ${highestBlockNumber}`)
 
