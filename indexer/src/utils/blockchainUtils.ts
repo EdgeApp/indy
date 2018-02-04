@@ -37,6 +37,7 @@ export async function getAccountsAsync (startBlock: number, endBlock: number): P
           result = result.concat(transactions)
         } catch (error) {
           logger.info(error)
+          return null
         }
       }
     }
@@ -59,18 +60,55 @@ export async function getTransactionsAsync (block, address) : Promise<Array<Tran
       return transactions
     } 
   } catch (error) {
+    logger.info(error)
     return null
   }
 }
 
 export async function convertTransactionFormatAsync (block: any, web3transactions: any[]) : Promise<Array<Transaction>> {
-  let transactions = []
-  let highestBlock = await web3.eth.getBlock('pending')
-  let highestBlockNumber = highestBlock.number
-  for (let index = 0; index < web3transactions.length; index++) {
-    var receipt = await web3.eth.getTransactionReceipt(web3transactions[index].hash)
-    let transaction = new Transaction(web3transactions[index], block, receipt, highestBlockNumber)
-    transactions.push(transaction)
+  try {
+    let transactions = []
+    let highestBlock = await web3.eth.getBlock('pending')
+    let highestBlockNumber = highestBlock.number
+    for (let index = 0; index < web3transactions.length; index++) {
+      var receipt = await web3.eth.getTransactionReceipt(web3transactions[index].hash)
+      let transaction = new Transaction(web3transactions[index], block, receipt, highestBlockNumber)
+      transactions.push(transaction)
+    }
+    return transactions
+  } catch (error) {
+    logger.info(error)
+    return null
   }
+}
+
+
+// for every block, fetch all transactions.
+// for every transaction, create account for every FROM / TO address
+// collect the transactions for each account
+export async function getTransactionsRawAsync (startBlock: number, endBlock: number): Promise<Array<Transaction>> {
+  let transactions = []
+  let startIndex = startBlock
+
+  while (startIndex < endBlock) {
+    let blocksPromises = []
+    for (let index = 0; index < configuration.BlockReqeusts && startIndex <= endBlock; index++) {
+      blocksPromises.push(web3.eth.getBlock(startIndex++))
+    }
+    let resBlocks = await Promise.all(blocksPromises)
+    for (let blockIndex = 0; blockIndex < resBlocks.length; blockIndex++) {
+      let block = resBlocks[blockIndex]
+      if (block) {
+        try {
+          let res = await getTransactionsAsync(block, null)
+          transactions = transactions.concat(res)
+        } catch (error) {
+          logger.info(error)
+          return null
+        }
+      }
+    }
+  }
+  logger.info(`total transaction ${transactions.length} in block #${startBlock} to block #${endBlock}.`)
   return transactions
 }

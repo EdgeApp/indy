@@ -7,19 +7,19 @@ import { configuration } from '../config/config'
 
 const Web3 = require('web3')
 
-export class IndexerHistory{
+export class IndexerHistoryTransactions{
   constructor() {
     this.web3 = new Web3()
     this.web3.setProvider(configuration.provider)  
     this.indexSetttings = new IndexerSettings()
-    this.accountCount = 0
+    this.transactionCount = 0
   }
 
   web3: any
   indexSetttings : IndexerSettings
-  accountCount : number
+  transactionCount : number
 
-
+  // start procees, do first block range, then take next availble range
   async startIndexerProcess () {
     logger.info('startIndexerProcess')
   
@@ -71,6 +71,7 @@ export class IndexerHistory{
     await this.Validate();      
   }
 
+  // take care of the current range, fetch #BlockStep blocks and save 
   async startIndex (startBlock: number, endBlock: number) : Promise<void> {
     logger.info(`startIndex method, startBlock # ${startBlock} to endBlock # ${endBlock}`)
     while (startBlock < endBlock) {
@@ -78,7 +79,7 @@ export class IndexerHistory{
       let end = ((startBlock + configuration.BlockStep) <= endBlock) ? startBlock + configuration.BlockStep : endBlock
     
       var startTime = process.hrtime();
-      await this.indexBlockRange(start, end)
+      await this.indexBlockRangeTransactions(start, end)
       var elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime));
       logger.info(`startIndex method, ${configuration.BlockStep} blocks, duration in sec: ${elapsedSeconds}`)
       
@@ -91,39 +92,29 @@ export class IndexerHistory{
     }
   }
 
-  async indexBlockRange (startBlock: number, endBlock: number) : Promise<void> {
-    let acccounts = await blockchainUtils.getAccountsAsync(startBlock, endBlock)
-    if(!acccounts) {
-      logger.log('error','blockchainUtils.getAccountsAsync return null, abort!')
-      throw(new Error('blockchainUtils.getAccountsAsync return null, abort.'))
+  async indexBlockRangeTransactions (startBlock: number, endBlock: number) : Promise<void> {
+    let transactions = await blockchainUtils.getTransactionsRawAsync(startBlock, endBlock)
+    if(!transactions) {
+      logger.log('error','blockchainUtils.getTransactionsRawAsync return null, abort!')
+      throw(new Error('blockchainUtils.getTransactionsRawAsync return null, abort.'))
     }
-    logger.info(`total accounts ${acccounts.size} from block #${startBlock} to block #${endBlock}.`)
-    try {
-      configuration.UseBulk ? 
-      await dbUtils.saveAccountsBulkAsync(acccounts)
-    : await dbUtils.saveAccountsAsync(acccounts)
-    } catch (error) {
-      logger.log('error','error in dbutils while saving accoungs, abort!')
-      throw(new Error('error in dbutils while saving accoungs, abort!'))      
+    logger.info(`indexBlockRangeTransactions transactions res from blockchain ${transactions.length} from block #${startBlock} to block #${endBlock}.`)
+    while (transactions.length)
+    {
+      let transactionsToSave = transactions.splice(0,1000)
+      try {
+        await dbUtils.saveTransactionsBulkAsync(transactionsToSave)
+      } catch (error) {
+        logger.log('error','error in dbutils while saving transactions, abort!')
+        throw(new Error('error in dbutils while saving transactions, abort!'))      
+      }
+      this.transactionCount += transactions.length
     }
-    this.accountCount += acccounts.size
-    logger.info(`total accounts so far ${this.accountCount}.`)
+    logger.info(`indexBlockRangeTransactions, total transactions so far in this run ${this.transactionCount}.`)
   }
 
   private async Validate() {
-    let accounts = await dbUtils.getAllDocsAsync();
-    let transactions = new Map<string, boolean>();
-    let transactionsCount = 0;
-    accounts.forEach(function (doc) {
-      // output each document's body
-      transactionsCount += doc.doc.transactions.length;
-      doc.doc.transactions.forEach(function (tran) {
-        if (!transactions.has(tran.hash))
-          transactions.set(tran.hash, true);
-        else
-          logger.info('error', 'duplicated transaction in DB!!!');
-      });
-    });
-    logger.info(`startIndexerProcess history finished, transactions count: ${transactionsCount}`);
-  }
+    let transactions = await dbUtils.getAllDocsAsync();
+    logger.info(`startIndexerTransactiosProcess history finished, transactions count: ${transactions.length}`);
+  }  
 }

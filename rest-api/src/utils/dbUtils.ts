@@ -18,3 +18,24 @@ export async function getAccountAsync (address: string) : Promise<any> {
     })
   })
 }
+
+export async function getAccountTransactionsAsync (account: string, limitTransactions: number = 10) : Promise<Array<any>> {
+  return new Promise<Array<any>>(async (resolve, reject) => {
+    historyDb.view('designDoc', 'fromAccountView', {keys: [account], include_docs: true, limit:limitTransactions}, function(err, body) {  
+      if (!err) {
+        let result = []
+        body.rows.forEach(function(row) {
+          delete row.doc._id
+          delete row.doc._rev
+          result.push(row.doc)
+          logger.info(row.doc)
+        })
+        logger.info(`getAccountTransactionsAsync result count: ${result.length}`)
+        resolve(result)
+      } else {
+        logger.info(err);
+        reject(new Error(`Error getAccountTransactionsAsync ${account}`))
+      }
+    })
+  })
+}

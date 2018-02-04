@@ -4,8 +4,10 @@ import * as logger from 'winston'
 import * as applicationRoutes from './bootstrap/routes'
 import * as db from './bootstrap/db'
 import * as indexer from './indexer/indexerHistory'
-import {configuration} from './config/config'
+import { configuration } from './config/config'
 import { IndexerHistory } from './indexer/indexerHistory';
+import { IndexerHistoryTransactions } from './indexer/indexerHistoryTransactions';
+
 
 let app = express()
 logging.load(app)
@@ -17,7 +19,10 @@ process.on('uncaughtException', function (err) {
 
 applicationRoutes.load(app)
 
-let indexerHistory = new IndexerHistory()
+// move to transaction db model
+//let indexerHistory = new IndexerHistory()
+let indexerHistory = new IndexerHistoryTransactions()
+
 db.CreateDataBases().then( async () => {
   await indexerHistory.startIndexerProcess()
 })

@@ -1,6 +1,7 @@
 import * as logger from 'winston'
 import * as utils from '../utils/utils'
 import { Account } from '../../../common/models/account'
+import { Transaction } from '../../../common/models/transaction'
 import { dbHandler } from '../utils/couchdb'
 import { configuration } from '../config/config'
 import { IndexerSettings } from '../indexer/indexerSettings'
@@ -47,8 +48,6 @@ export async function updateAccountRevisionsBulkAsync(accounts: any): Promise<vo
       accountsList.push(key)
     })
     historyDb.fetch({ keys: accountsList }, async function (err, revResultList) {
-      //logger.info('revResultList')
-      //logger.info(JSON.stringify(revResultList))
       if (!err) {
         let restAccounts = []
         for (let index = 0; index < revResultList.rows.length; index++) {
@@ -156,5 +155,29 @@ export async function getAllDocsAsync ( ) : Promise<any> {
   })
 }
 
-
+// bulk accounts functions
+export async function saveTransactionsBulkAsync (transactions: Array<Transaction>) : Promise<void> {
+  let totalStartTime = process.hrtime();
+  logger.info(`saving ${transactions.length} transactions`)
+  return new Promise<void>(async (resolve, reject) => {
+    let accountsList = []
+    historyDb.bulk({docs:transactions}, async function(err, body) {
+      if(!err) {
+        let rejectedTransactions = [] 
+        for(let index = 0 ; index < body.length;  index++) {
+          if(body[index].hasOwnProperty('error')) {
+            rejectedTransactions.push(body[index].id)
+          }
+      }
+      logger.info('rejectedTransactions')
+      logger.info(JSON.stringify(rejectedTransactions))
+      let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime));
+      logger.info(`saveTransactionsBulkAsync ${transactions.length} transactions, duration in sec: ${elapsedSeconds}`)                      
+      resolve()
+      } else {
+        reject(new Error(`error saveTransactionsBulkAsync : ${err}`))
+      }
+    })
+  })
+}
 
