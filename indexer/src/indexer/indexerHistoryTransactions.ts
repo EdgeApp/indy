@@ -92,6 +92,7 @@ export class IndexerHistoryTransactions{
     }
   }
 
+  // index by transactions
   async indexBlockRangeTransactions (startBlock: number, endBlock: number) : Promise<void> {
     let transactions = await blockchainUtils.getTransactionsRawAsync(startBlock, endBlock)
     if(!transactions) {
