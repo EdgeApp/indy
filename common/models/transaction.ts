@@ -2,12 +2,13 @@
 
 
 export class Transaction {
-  constructor (web3Transaction: any, block: any, transactionReceipt: any, highestBlock: number) {
+  constructor (web3Transaction: any, block: any, transactionReceipt: any) {
     // block
+    this._id = web3Transaction.hash
     this.blockNumber = block.number
     this.timeStamp = block.timestamp
     this.blockHash = block.hash
-    this.confirmations = highestBlock - web3Transaction.blockNumber
+    this.confirmations = 1000
     // transaction
     this.hash = web3Transaction.hash
     this.nonce = web3Transaction.nonce
@@ -32,6 +33,7 @@ export class Transaction {
     this.contractAddress = transactionReceipt.contractAddress
   }
 
+  _id: string 
   // block info
   blockNumber: number
   timeStamp: string

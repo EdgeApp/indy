@@ -48,7 +48,7 @@ export class IndexerHistoryTransactions{
     do {      
       highestBlock = await this.web3.eth.getBlock('pending')
       highestBlockNumber = highestBlock.number - configuration.MaxEphemeralForkBlocks
-      // highestBlockNumber = 76000 // temp patch fro tests
+      //highestBlockNumber = 4050000 // temp patch for tests
       logger.info(`startIndexerProcess, highstBlock: ${highestBlockNumber}`)
 
       this.indexSetttings.startBlockNumber = this.indexSetttings.endBlockNumber 
@@ -93,7 +93,7 @@ export class IndexerHistoryTransactions{
   }
 
   async indexBlockRangeTransactions (startBlock: number, endBlock: number) : Promise<void> {
-    let transactions = await blockchainUtils.getTransactionsRawAsync(startBlock, endBlock)
+    let transactions = await blockchainUtils.getBlockTransactionsAsync(startBlock, endBlock)
     if(!transactions) {
       logger.log('error','blockchainUtils.getTransactionsRawAsync return null, abort!')
       throw(new Error('blockchainUtils.getTransactionsRawAsync return null, abort.'))
@@ -101,15 +101,16 @@ export class IndexerHistoryTransactions{
     logger.info(`indexBlockRangeTransactions transactions res from blockchain ${transactions.length} from block #${startBlock} to block #${endBlock}.`)
     while (transactions.length)
     {
-      let transactionsToSave = transactions.splice(0,1000)
+      let transactionsToSave = transactions.splice(0, configuration.LimitTransactionBlukSave)
       try {
         await dbUtils.saveTransactionsBulkAsync(transactionsToSave)
       } catch (error) {
         logger.log('error','error in dbutils while saving transactions, abort!')
+        logger.log('error',error)
         throw(new Error('error in dbutils while saving transactions, abort!'))      
       }
-      this.transactionCount += transactions.length
     }
+    this.transactionCount += transactions.length
     logger.info(`indexBlockRangeTransactions, total transactions so far in this run ${this.transactionCount}.`)
   }
 

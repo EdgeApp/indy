@@ -7,6 +7,79 @@ const Web3 = require('web3')
 const web3 = new Web3()
 web3.setProvider(configuration.provider)
 
+export async function getBlockTransactionsAsync (startBlock: number, endBlock: number): Promise<Array<Transaction>> {
+  let transactions = []
+  let startIndex = startBlock
+  while (startIndex < endBlock) {
+    let blocksPromises = []
+    for (let index = 0; index < configuration.BlockReqeusts && startIndex <= endBlock; index++) {
+      blocksPromises.push(web3.eth.getBlock(startIndex++, true))
+    }
+    let resBlocks = await Promise.all(blocksPromises)
+    for (let blockIndex = 0; blockIndex < resBlocks.length; blockIndex++) {
+      let block = resBlocks[blockIndex]
+      if (block) {
+        try {
+          let res = await getTransactionsFromBlockAsync(block)
+          transactions = transactions.concat(res)
+        } catch (error) {
+          logger.info(error)
+          return null
+        }
+      }
+    }
+  }
+  logger.info(`total transaction ${transactions.length} in block #${startBlock} to block #${endBlock}.`)
+  return transactions
+}
+
+// fetch transactions body for each block
+export async function getTransactionsFromBlockAsync (block): Promise<Array<Transaction>> {
+  try {
+    let transactionCount = 0
+    if (block && block.transactions) {
+      logger.info(`block #${block.number}, transactions count ${block.transactions.length}.`)
+      let resTransactions = await convertTransactionFormatAsync(block, block.transactions)
+      let limit = 0
+      while(!resTransactions && limit++ < 10) {
+        logger.log('error', `getTransactionsFromBlockAsync fail for block #${block.number}, resTransactions is null, fetching again`)
+        resTransactions = await convertTransactionFormatAsync(block, block.transactions)
+        if(resTransactions)
+        logger.info(`getTransactionsFromBlockAsync feched succsefuly block #${block.number} again`)
+        
+      }
+      // TODO - save fail blocks to setttings DB
+      return resTransactions
+    } 
+  } catch (error) {
+    logger.info(error)
+    return null
+  }
+}
+
+export async function convertTransactionFormatAsync (block: any, web3transactions: any[]): Promise<Array<Transaction>> {
+  try {
+    let transactions = []
+    let transactionReceiptPromises = []
+    for (let index = 0; index < web3transactions.length; index++) {
+      transactionReceiptPromises.push(web3.eth.getTransactionReceipt(web3transactions[index].hash))
+    }
+    let resTransactionReceipt = await Promise.all(transactionReceiptPromises)
+
+    for (let index = 0; index < resTransactionReceipt.length; index++) {
+      let web3tran = web3transactions.findIndex((t) => t.hash == resTransactionReceipt[index].transactionHash)
+      let transaction = new Transaction(web3transactions[web3tran], block, resTransactionReceipt[index])
+      transactions.push(transaction)
+    }
+    return transactions
+  } catch (error) {
+    logger.log('error', `convertTransactionFormatAsync fail,  error ${error}`)
+    logger.log('error', `convertTransactionFormatAsync block # ${block.number} fail, need to do again`)
+    
+    return null
+  }
+}
+
 // for every block, fetch all transactions.
 // for every transaction, create account for every FROM / TO address
 // collect the transactions for each account
@@ -64,24 +137,6 @@ export async function getTransactionsAsync (block, address) : Promise<Array<Tran
     return null
   }
 }
-
-export async function convertTransactionFormatAsync (block: any, web3transactions: any[]) : Promise<Array<Transaction>> {
-  try {
-    let transactions = []
-    let highestBlock = await web3.eth.getBlock('pending')
-    let highestBlockNumber = highestBlock.number
-    for (let index = 0; index < web3transactions.length; index++) {
-      var receipt = await web3.eth.getTransactionReceipt(web3transactions[index].hash)
-      let transaction = new Transaction(web3transactions[index], block, receipt, highestBlockNumber)
-      transactions.push(transaction)
-    }
-    return transactions
-  } catch (error) {
-    logger.info(error)
-    return null
-  }
-}
-
 
 // for every block, fetch all transactions.
 // for every transaction, create account for every FROM / TO address

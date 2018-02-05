@@ -10,76 +10,30 @@ const historyDb = dbHandler.use(configuration.HistoryDBName)
 const settingsDb = dbHandler.use(configuration.SettingDBName)
 
 // bulk accounts functions
-export async function saveAccountsBulkAsync (accounts: Map<string, any>) : Promise<void> {
+export async function saveTransactionsBulkAsync (transactions: Array<Transaction>) : Promise<void> {
   let totalStartTime = process.hrtime();
-  logger.info(`saving ${accounts.size} accounts`)
-  await updateAccountRevisionsBulkAsync(accounts)
+  logger.info(`saving ${transactions.length} transactions`)
   return new Promise<void>(async (resolve, reject) => {
     let accountsList = []
-    accounts.forEach(async (value: any, key: string) => {
-      value._id = key
-      accountsList.push(value)
-    })
-    historyDb.bulk({docs:accountsList}, async function(err, body) {
+    historyDb.bulk({docs:transactions}, async function(err, body) {
       if(!err) {
-        let rejectedAccounts = [] 
+        let rejectedTransactions = [] 
         for(let index = 0 ; index < body.length;  index++) {
           if(body[index].hasOwnProperty('error')) {
-              rejectedAccounts.push(body[index].id)
+            rejectedTransactions.push(body[index].id)
           }
       }
-      logger.info('rejectedAccounts')
-      logger.info(JSON.stringify(rejectedAccounts))
+      logger.info(JSON.stringify(rejectedTransactions))
+      logger.info(`#${rejectedTransactions.length} rejectedTransactions, already exists.`)
+
       let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime));
-      logger.info(`saveAccountsBulkAsync ${accounts.size} accounts, duration in sec: ${elapsedSeconds}`)                      
+      logger.info(`saveTransactionsBulkAsync ${transactions.length} transactions, duration in sec: ${elapsedSeconds}`)                      
       resolve()
       } else {
-        reject(new Error(`error saveAccountsBulkAsync : ${err}`))
+        reject(new Error(`error saveTransactionsBulkAsync : ${err}`))
       }
     })
   })
-}
-
-
-export async function updateAccountRevisionsBulkAsync(accounts: any): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    let accountsList = []
-    accounts.forEach(async (value: any, key: string) => {
-      accountsList.push(key)
-    })
-    historyDb.fetch({ keys: accountsList }, async function (err, revResultList) {
-      if (!err) {
-        let restAccounts = []
-        for (let index = 0; index < revResultList.rows.length; index++) {
-          if (revResultList.rows[index].hasOwnProperty('error')) {
-            continue
-          } else {
-            let account = accounts.get(revResultList.rows[index].key)
-            account.transactions = account.transactions.concat(revResultList.rows[index].doc.transactions)
-            account._rev = revResultList.rows[index].doc._rev
-          }
-        }
-        resolve()
-      } else {
-        reject(new Error(`error updateAccountRevisionsBulkAsync : ${err}`))
-      }
-    })
-  })
-}
-
-// non bulk accounts functions
-export async function saveAccountsAsync (accounts: Map<string, Account>) : Promise<void> {
-  logger.info(`saving ${accounts.size} accounts`)
-  let totalStartTime = process.hrtime();
-  logger.info(`saving ${accounts.size} accounts`)  
-  let savePromises = []
-  accounts.forEach((value: Account, key: string) => {
-    savePromises.push(saveSingleAccountAsync(value))
-  })
-  await Promise.all(savePromises)
-  logger.info(`${accounts.size} accounts saved`)
-  let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime));
-  logger.info(`saveAccountsAsync ${accounts} accounts, duration in sec: ${elapsedSeconds}`)     
 }
 
 export async function saveSingleAccountAsync (account: any) : Promise<void> {
@@ -104,8 +58,10 @@ export async function saveSingleAccountAsync (account: any) : Promise<void> {
   })
  }
   
-// indexer settings functions
-export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
+
+ // indexer settings functions
+
+ export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
   logger.info(`fetching settings for # ${indexerID}`)
   return new Promise((resolve, reject) => {
     settingsDb.get(indexerID, async (error, existing) => {
@@ -156,28 +112,73 @@ export async function getAllDocsAsync ( ) : Promise<any> {
 }
 
 // bulk accounts functions
-export async function saveTransactionsBulkAsync (transactions: Array<Transaction>) : Promise<void> {
+export async function saveAccountsBulkAsync (accounts: Map<string, any>) : Promise<void> {
   let totalStartTime = process.hrtime();
-  logger.info(`saving ${transactions.length} transactions`)
+  logger.info(`saving ${accounts.size} accounts`)
+  await updateAccountRevisionsBulkAsync(accounts)
   return new Promise<void>(async (resolve, reject) => {
     let accountsList = []
-    historyDb.bulk({docs:transactions}, async function(err, body) {
+    accounts.forEach(async (value: any, key: string) => {
+      value._id = key
+      accountsList.push(value)
+    })
+    historyDb.bulk({docs:accountsList}, async function(err, body) {
       if(!err) {
-        let rejectedTransactions = [] 
+        let rejectedAccounts = [] 
         for(let index = 0 ; index < body.length;  index++) {
           if(body[index].hasOwnProperty('error')) {
-            rejectedTransactions.push(body[index].id)
+              rejectedAccounts.push(body[index].id)
           }
       }
-      logger.info('rejectedTransactions')
-      logger.info(JSON.stringify(rejectedTransactions))
+      logger.info('rejectedAccounts')
+      logger.info(JSON.stringify(rejectedAccounts))
       let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime));
-      logger.info(`saveTransactionsBulkAsync ${transactions.length} transactions, duration in sec: ${elapsedSeconds}`)                      
+      logger.info(`saveAccountsBulkAsync ${accounts.size} accounts, duration in sec: ${elapsedSeconds}`)                      
       resolve()
       } else {
-        reject(new Error(`error saveTransactionsBulkAsync : ${err}`))
+        reject(new Error(`error saveAccountsBulkAsync : ${err}`))
       }
     })
   })
 }
 
+export async function updateAccountRevisionsBulkAsync(accounts: any): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    let accountsList = []
+    accounts.forEach(async (value: any, key: string) => {
+      accountsList.push(key)
+    })
+    historyDb.fetch({ keys: accountsList }, async function (err, revResultList) {
+      if (!err) {
+        let restAccounts = []
+        for (let index = 0; index < revResultList.rows.length; index++) {
+          if (revResultList.rows[index].hasOwnProperty('error')) {
+            continue
+          } else {
+            let account = accounts.get(revResultList.rows[index].key)
+            account.transactions = account.transactions.concat(revResultList.rows[index].doc.transactions)
+            account._rev = revResultList.rows[index].doc._rev
+          }
+        }
+        resolve()
+      } else {
+        reject(new Error(`error updateAccountRevisionsBulkAsync : ${err}`))
+      }
+    })
+  })
+}
+
+// non bulk accounts functions
+export async function saveAccountsAsync (accounts: Map<string, Account>) : Promise<void> {
+  logger.info(`saving ${accounts.size} accounts`)
+  let totalStartTime = process.hrtime();
+  logger.info(`saving ${accounts.size} accounts`)  
+  let savePromises = []
+  accounts.forEach((value: Account, key: string) => {
+    savePromises.push(saveSingleAccountAsync(value))
+  })
+  await Promise.all(savePromises)
+  logger.info(`${accounts.size} accounts saved`)
+  let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime));
+  logger.info(`saveAccountsAsync ${accounts} accounts, duration in sec: ${elapsedSeconds}`)     
+}
