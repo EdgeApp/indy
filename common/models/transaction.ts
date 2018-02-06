@@ -8,7 +8,7 @@ export class Transaction {
     this.blockNumber = block.number
     this.timeStamp = block.timestamp
     this.blockHash = block.hash
-    this.confirmations = 1000
+    this.confirmations = 9999999 // will need to calc when fetched, confirmations is latest block - transaction.blockNumber
     // transaction
     this.hash = web3Transaction.hash
     this.nonce = web3Transaction.nonce
