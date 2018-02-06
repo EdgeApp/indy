@@ -51,7 +51,7 @@ export class IndexerHistoryTransactions{
       //highestBlockNumber = 4050000 // temp patch for tests
       logger.info(`startIndexerProcess, highstBlock: ${highestBlockNumber}`)
 
-      this.indexSetttings.startBlockNumber = this.indexSetttings.endBlockNumber 
+      this.indexSetttings.startBlockNumber = this.indexSetttings.endBlockNumber + 1
       this.indexSetttings.lastBlockNumber = this.indexSetttings.startBlockNumber
       this.indexSetttings.endBlockNumber += configuration.BlockChunkSize
       if(this.indexSetttings.endBlockNumber > highestBlockNumber)
