@@ -12,16 +12,18 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
   let startIndex = startBlock
   while (startIndex < endBlock) {
     let blocksPromises = []
-    for (let index = 0; index < configuration.BlockReqeusts && startIndex <= endBlock; index++) {
+    for (let index = 0; index < configuration.BlockReqeusts && startIndex < endBlock; index++) {
       blocksPromises.push(web3.eth.getBlock(startIndex++, true))
     }
+    logger.info(`getBlockTransactionsAsync wait for Promise.all.`)
     let resBlocks = await Promise.all(blocksPromises)
     for (let blockIndex = 0; blockIndex < resBlocks.length; blockIndex++) {
       let block = resBlocks[blockIndex]
       if (block) {
         try {
           let res = await getTransactionsFromBlockAsync(block)
-          transactions = transactions.concat(res)
+          if(res)
+            transactions = transactions.concat(res)
         } catch (error) {
           logger.info(error)
           return null
@@ -42,11 +44,12 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
       let resTransactions = await convertTransactionFormatAsync(block, block.transactions)
       let limit = 0
       while(!resTransactions && limit++ < 10) {
-        logger.log('error', `getTransactionsFromBlockAsync fail for block #${block.number}, resTransactions is null, fetching again`)
+        logger.error(`getTransactionsFromBlockAsync fail for block #${block.number}, resTransactions is null, fetching again, try #${limit}`)
         resTransactions = await convertTransactionFormatAsync(block, block.transactions)
         if(resTransactions)
-        logger.info(`getTransactionsFromBlockAsync feched succsefuly block #${block.number} again`)
-        
+          logger.info(`getTransactionsFromBlockAsync succsefuly feched block #${block.number}`)
+        else
+         logger.error(`getTransactionsFromBlockAsync error fetch block #${block.number}, missing block`)
       }
       // TODO - save fail blocks to setttings DB
       return resTransactions
@@ -63,12 +66,16 @@ export async function convertTransactionFormatAsync (block: any, web3transaction
     let transactionReceiptPromises = []
     for (let index = 0; index < web3transactions.length; index++) {
       transactionReceiptPromises.push(web3.eth.getTransactionReceipt(web3transactions[index].hash))
+     // logger.info(`convertTransactionFormatAsync request transaction #${index}, transactions count ${web3transactions.length}.`)
+      
     }
     let resTransactionReceipt = await Promise.all(transactionReceiptPromises)
 
     for (let index = 0; index < resTransactionReceipt.length; index++) {
       let web3tran = web3transactions.findIndex((t) => t.hash == resTransactionReceipt[index].transactionHash)
       let transaction = new Transaction(web3transactions[web3tran], block, resTransactionReceipt[index])
+      //logger.info(`convertTransactionFormatAsync create transaction #${index}, transactions count ${resTransactionReceipt.length}.`)
+      
       transactions.push(transaction)
     }
     return transactions
