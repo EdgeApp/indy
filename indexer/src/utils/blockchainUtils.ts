@@ -15,7 +15,7 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
     for (let index = 0; index < configuration.BlockReqeusts && startIndex < endBlock; index++) {
       blocksPromises.push(web3.eth.getBlock(startIndex++, true))
     }
-    logger.info(`getBlockTransactionsAsync wait for Promise.all.`)
+    logger.info(`getBlockTransactionsAsync wait for block requests`)
     let resBlocks = await Promise.all(blocksPromises)
     for (let blockIndex = 0; blockIndex < resBlocks.length; blockIndex++) {
       let block = resBlocks[blockIndex]
@@ -40,7 +40,7 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
   try {
     let transactionCount = 0
     if (block && block.transactions) {
-      logger.info(`block #${block.number}, transactions count ${block.transactions.length}.`)
+      //logger.info(`block #${block.number}, transactions count ${block.transactions.length}.`)
       let resTransactions = await convertTransactionFormatAsync(block, block.transactions)
       let limit = 0
       while(!resTransactions && limit++ < 10) {
@@ -87,6 +87,7 @@ export async function convertTransactionFormatAsync (block: any, web3transaction
   }
 }
 
+// not in use - to remove
 // for every block, fetch all transactions.
 // for every transaction, create account for every FROM / TO address
 // collect the transactions for each account
@@ -145,9 +146,8 @@ export async function getTransactionsAsync (block, address) : Promise<Array<Tran
   }
 }
 
-// for every block, fetch all transactions.
-// for every transaction, create account for every FROM / TO address
-// collect the transactions for each account
+
+// not in use - to remove
 export async function getTransactionsRawAsync (startBlock: number, endBlock: number): Promise<Array<Transaction>> {
   let transactions = []
   let startIndex = startBlock

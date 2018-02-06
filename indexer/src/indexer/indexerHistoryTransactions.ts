@@ -11,7 +11,6 @@ export class IndexerHistoryTransactions{
   constructor() {
     this.web3 = new Web3()
     this.web3.setProvider(configuration.provider)  
-    this.indexSetttings = new IndexerSettings()
     this.transactionCount = 0
   }
 
@@ -36,6 +35,7 @@ export class IndexerHistoryTransactions{
       // first chunk, no settings in db yet
       if(!this.indexSetttings)
       {
+        this.indexSetttings = new IndexerSettings()
         logger.info(`startIndexerProcess, first chunk, block # 0 to block # ${configuration.BlockChunkSize}`)
         this.indexSetttings.startBlockNumber = 45000 // no transactions before this block, we can index from here
         this.indexSetttings.lastBlockNumber = 45000
