@@ -34,12 +34,19 @@ export class IndexerHistoryTransactions{
       logger.info(`startIndexerProcess method, ${this.indexSetttings.endBlockNumber - last} blocks, duration in sec: ${elapsedSeconds}`)          
     } catch (error) {
       // first chunk, no settings in db yet
-      logger.info(`startIndexerProcess, first chunk, block # 0 to block # ${configuration.BlockChunkSize}`)
-      this.indexSetttings.startBlockNumber = 46000 // no transactions before this block, we can index from here
-      this.indexSetttings.lastBlockNumber = 46000
-      this.indexSetttings.endBlockNumber = 46000 + configuration.BlockChunkSize
-      await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
-      await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber) 
+      if(!this.indexSetttings)
+      {
+        logger.info(`startIndexerProcess, first chunk, block # 0 to block # ${configuration.BlockChunkSize}`)
+        this.indexSetttings.startBlockNumber = 45000 // no transactions before this block, we can index from here
+        this.indexSetttings.lastBlockNumber = 45000
+        this.indexSetttings.endBlockNumber = 45000 + configuration.BlockChunkSize
+        await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+        await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber) 
+      }
+      else {
+        logger.info(`startIndexerProcess error:, ${error}`)
+        throw error
+      }
     }
     
     let highestBlock : any
@@ -116,7 +123,6 @@ export class IndexerHistoryTransactions{
   }
 
   private async Validate() {
-    let transactions = await dbUtils.getAllDocsAsync();
-    logger.info(`startIndexerTransactiosProcess history finished, transactions count: ${transactions.length}`);
+
   }  
 }
