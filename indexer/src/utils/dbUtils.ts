@@ -57,10 +57,8 @@ export async function saveSingleAccountAsync (account: any) : Promise<void> {
     })
   })
  }
-  
-
+ 
  // indexer settings functions
-
  export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
   logger.info(`fetching settings for # ${indexerID}`)
   return new Promise((resolve, reject) => {
@@ -97,6 +95,7 @@ export async function saveIndexerSettingsAsync (settings: any) : Promise<void> {
   })
 }
 
+// all functions from here are not in use - to be deleted
 export async function getAllDocsAsync ( ) : Promise<any> {
   logger.info(`getAllDocsAsync`)
   return new Promise((resolve, reject) => {
@@ -129,12 +128,12 @@ export async function saveAccountsBulkAsync (accounts: Map<string, any>) : Promi
           if(body[index].hasOwnProperty('error')) {
               rejectedAccounts.push(body[index].id)
           }
-      }
-      logger.info('rejectedAccounts')
-      logger.info(JSON.stringify(rejectedAccounts))
-      let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime));
-      logger.info(`saveAccountsBulkAsync ${accounts.size} accounts, duration in sec: ${elapsedSeconds}`)                      
-      resolve()
+        }
+        logger.info('rejectedAccounts')
+        logger.info(JSON.stringify(rejectedAccounts))
+        let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime));
+        logger.info(`saveAccountsBulkAsync ${accounts.size} accounts, duration in sec: ${elapsedSeconds}`)                      
+        resolve()
       } else {
         reject(new Error(`error saveAccountsBulkAsync : ${err}`))
       }

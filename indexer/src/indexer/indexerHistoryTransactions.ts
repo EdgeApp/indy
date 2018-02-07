@@ -25,7 +25,7 @@ export class IndexerHistoryTransactions{
     var totalStartTime = process.hrtime();
     // first time
     try {
-      this.indexSetttings = await dbUtils.getIndexerSettingsAsync(this.indexSetttings.id)
+      this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
       let startTime = process.hrtime();
       let last = this.indexSetttings.lastBlockNumber
       await this.startIndex(this.indexSetttings.lastBlockNumber, this.indexSetttings.endBlockNumber) 
@@ -52,74 +52,91 @@ export class IndexerHistoryTransactions{
     let highestBlock : any
     let highestBlockNumber : number      
 
-    do {      
-      highestBlock = await this.web3.eth.getBlock('pending')
-      highestBlockNumber = highestBlock.number - configuration.MaxEphemeralForkBlocks
-      //highestBlockNumber = 4050000 // temp patch for tests
-      logger.info(`startIndexerProcess, highstBlock: ${highestBlockNumber}`)
+    try {
+      do {      
+        highestBlock = await this.web3.eth.getBlock('pending')
+        highestBlockNumber = highestBlock.number - configuration.MaxEphemeralForkBlocks
+        //highestBlockNumber = 4050000 // temp patch for tests
+        logger.info(`startIndexerProcess, highstBlock: ${highestBlockNumber}`)
 
-      this.indexSetttings.startBlockNumber = this.indexSetttings.endBlockNumber + 1
-      this.indexSetttings.lastBlockNumber = this.indexSetttings.startBlockNumber
-      this.indexSetttings.endBlockNumber += configuration.BlockChunkSize
-      if(this.indexSetttings.endBlockNumber > highestBlockNumber)
-        this.indexSetttings.endBlockNumber = highestBlockNumber
+        this.indexSetttings.startBlockNumber = this.indexSetttings.endBlockNumber + 1
+        this.indexSetttings.lastBlockNumber = this.indexSetttings.startBlockNumber
+        this.indexSetttings.endBlockNumber += configuration.BlockChunkSize
+        if(this.indexSetttings.endBlockNumber > highestBlockNumber)
+          this.indexSetttings.endBlockNumber = highestBlockNumber
 
-      let startTime = process.hrtime();
-      await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber) 
-      let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime));
-      logger.info(`startIndexerProcess method, ${this.indexSetttings.endBlockNumber - this.indexSetttings.startBlockNumber} blocks, duration in sec: ${elapsedSeconds}`)                
-      logger.info(`startIndexerProcess, indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
+        let startTime = process.hrtime();
+        await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber) 
+        let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime));
+        logger.info(`startIndexerProcess method, ${this.indexSetttings.endBlockNumber - this.indexSetttings.startBlockNumber} blocks, duration in sec: ${elapsedSeconds}`)                
+        logger.info(`startIndexerProcess, indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
 
-    } while(this.indexSetttings.endBlockNumber < highestBlockNumber)
-    logger.info(`startIndexerProcess finished index history to ,highestBlock: ${highestBlockNumber}`)
-    var totalElapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime));
-    logger.info(`startIndexerProcess history finished, duration in sec: ${totalElapsedSeconds}`)      
-    
+      } while(this.indexSetttings.endBlockNumber < highestBlockNumber)
+      logger.info(`startIndexerProcess finished index history to ,highestBlock: ${highestBlockNumber}`)
+      var totalElapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime));
+      logger.info(`startIndexerProcess history finished, duration in sec: ${totalElapsedSeconds}`)      
+      
+    } catch (error) {
+      logger.info(`startIndexerProcess error:, ${error}`)
+      throw error      
+  }    
     await this.Validate();      
   }
 
   // take care of the current range, fetch #BlockStep blocks and save 
   async startIndex (startBlock: number, endBlock: number) : Promise<void> {
-    logger.info(`startIndex method, startBlock # ${startBlock} to endBlock # ${endBlock}`)
-    while (startBlock < endBlock) {
-      let start = startBlock
-      let end = ((startBlock + configuration.BlockStep) <= endBlock) ? startBlock + configuration.BlockStep : endBlock
-    
-      var startTime = process.hrtime();
-      await this.indexBlockRangeTransactions(start, end)
-      var elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime));
-      logger.info(`startIndex method, ${configuration.BlockStep} blocks, duration in sec: ${elapsedSeconds}`)
+    try {
+      logger.info(`startIndex method, startBlock # ${startBlock} to endBlock # ${endBlock}`)
+      while (startBlock < endBlock) {
+        let start = startBlock
+        let end = ((startBlock + configuration.BlockStep) <= endBlock) ? startBlock + configuration.BlockStep : endBlock
       
-      startBlock += configuration.BlockStep
-      if(startBlock >= endBlock)
-        startBlock = endBlock
+        var startTime = process.hrtime();
+        await this.indexBlockRangeTransactions(start, end)
+        var elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime));
+        logger.info(`startIndex method, ${configuration.BlockStep} blocks, duration in sec: ${elapsedSeconds}`)
+        
+        startBlock += configuration.BlockStep
+        if(startBlock >= endBlock)
+          startBlock = endBlock
 
-      this.indexSetttings.lastBlockNumber = end
-      await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+        this.indexSetttings.lastBlockNumber = end
+        await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+      }     
+    } catch (error) {
+      logger.log('error',`startIndex error in blocks ${startBlock} - ${endBlock}, abort!`)
+      logger.log('error',error)      
+      throw(new Error('startIndex - error, abort!'))        
     }
   }
 
   // index by transactions
   async indexBlockRangeTransactions (startBlock: number, endBlock: number) : Promise<void> {
-    let transactions = await blockchainUtils.getBlockTransactionsAsync(startBlock, endBlock)
-    if(!transactions) {
-      logger.log('error','blockchainUtils.getTransactionsRawAsync return null, abort!')
-      throw(new Error('blockchainUtils.getTransactionsRawAsync return null, abort.'))
-    }
-    logger.info(`indexBlockRangeTransactions transactions res from blockchain ${transactions.length} from block #${startBlock} to block #${endBlock}.`)
-    while (transactions.length)
-    {
-      let transactionsToSave = transactions.splice(0, configuration.LimitTransactionBlukSave)
-      try {
-        await dbUtils.saveTransactionsBulkAsync(transactionsToSave)
-      } catch (error) {
-        logger.log('error','error in dbutils while saving transactions, abort!')
-        logger.log('error',error)
-        throw(new Error('error in dbutils while saving transactions, abort!'))      
+    try {
+      let transactions = await blockchainUtils.getBlockTransactionsAsync(startBlock, endBlock)
+      if(!transactions) {
+        logger.log('error','blockchainUtils.getTransactionsRawAsync return null, abort!')
+        throw(new Error('blockchainUtils.getTransactionsRawAsync return null, abort.'))
       }
-    }
-    this.transactionCount += transactions.length
-    logger.info(`indexBlockRangeTransactions, total transactions so far in this run ${this.transactionCount}.`)
+      logger.info(`indexBlockRangeTransactions ${transactions.length} transactions returned from block #${startBlock} to block #${endBlock}.`)
+      this.transactionCount += transactions.length
+      logger.info(`indexBlockRangeTransactions, total transactions so far in this run ${this.transactionCount}.`)
+      while (transactions.length)
+      {
+        let transactionsToSave = transactions.splice(0, configuration.LimitTransactionBlukSave)
+        try {
+          await dbUtils.saveTransactionsBulkAsync(transactionsToSave)
+        } catch (error) {
+          logger.log('error','indexBlockRangeTransactions - error in dbutils while saving transactions, abort!')
+          logger.log('error',error)
+          throw(new Error('indexBlockRangeTransactions - error in dbutils while saving transactions, abort!'))      
+        }
+      }
+    } catch (error) {
+      logger.log('error',`indexBlockRangeTransactions error in blocks ${startBlock} - ${endBlock}, abort!`)
+      logger.log('error',error)      
+      throw(new Error('indexBlockRangeTransactions - error, abort!'))      
+    }    
   }
 
   private async Validate() {

@@ -10,27 +10,35 @@ web3.setProvider(configuration.provider)
 export async function getBlockTransactionsAsync (startBlock: number, endBlock: number): Promise<Array<Transaction>> {
   let transactions = []
   let startIndex = startBlock
-  while (startIndex < endBlock) {
-    let blocksPromises = []
-    for (let index = 0; index < configuration.BlockReqeusts && startIndex < endBlock; index++) {
-      blocksPromises.push(web3.eth.getBlock(startIndex++, true))
-    }
-    logger.info(`getBlockTransactionsAsync wait for block requests`)
-    let resBlocks = await Promise.all(blocksPromises)
-    for (let blockIndex = 0; blockIndex < resBlocks.length; blockIndex++) {
-      let block = resBlocks[blockIndex]
-      if (block) {
-        try {
-          let res = await getTransactionsFromBlockAsync(block)
-          if(res)
-            transactions = transactions.concat(res)
-        } catch (error) {
-          logger.info(error)
-          return null
+  try {
+    while (startIndex < endBlock) {
+      let blocksPromises = []
+      let index
+      for (index = 0; index < configuration.BlockReqeusts && startIndex < endBlock; index++) {
+        blocksPromises.push(web3.eth.getBlock(startIndex++, true))
+      }
+      logger.info(`getBlockTransactionsAsync waiting for blocks #${startIndex - index} - #${startIndex - 1} requests`)
+      let resBlocks = await Promise.all(blocksPromises)
+      for (let blockIndex = 0; blockIndex < resBlocks.length; blockIndex++) {
+        let block = resBlocks[blockIndex]
+        if (block) {
+          try {
+            let res = await getTransactionsFromBlockAsync(block)
+            if(res)
+              transactions = transactions.concat(res)
+              // TODO - save fail blocks to setttings DB
+          } catch (error) {
+            logger.error(error)
+            return null
+          }
         }
       }
+      logger.info(`getBlockTransactionsAsync transactions for blocks #${startBlock} - #${startIndex - 1} : ${transactions.length}`)
     }
-  }
+  } catch (error) {
+    logger.error(error)
+    return null    
+  }   
   logger.info(`total transaction ${transactions.length} in block #${startBlock} to block #${endBlock}.`)
   return transactions
 }
@@ -43,7 +51,7 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
       //logger.info(`block #${block.number}, transactions count ${block.transactions.length}.`)
       let resTransactions = await convertTransactionFormatAsync(block, block.transactions)
       let limit = 0
-      while(!resTransactions && limit++ < 10) {
+      while(!resTransactions && limit++ < 10) { // TODO - chage to work in time intervals
         logger.error(`getTransactionsFromBlockAsync fail for block #${block.number}, resTransactions is null, fetching again, try #${limit}`)
         resTransactions = await convertTransactionFormatAsync(block, block.transactions)
         if(resTransactions)
@@ -55,7 +63,7 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
       return resTransactions
     } 
   } catch (error) {
-    logger.info(error)
+    logger.error(error)
     return null
   }
 }
@@ -67,22 +75,18 @@ export async function convertTransactionFormatAsync (block: any, web3transaction
     for (let index = 0; index < web3transactions.length; index++) {
       transactionReceiptPromises.push(web3.eth.getTransactionReceipt(web3transactions[index].hash))
      // logger.info(`convertTransactionFormatAsync request transaction #${index}, transactions count ${web3transactions.length}.`)
-      
     }
     let resTransactionReceipt = await Promise.all(transactionReceiptPromises)
-
     for (let index = 0; index < resTransactionReceipt.length; index++) {
       let web3tran = web3transactions.findIndex((t) => t.hash == resTransactionReceipt[index].transactionHash)
       let transaction = new Transaction(web3transactions[web3tran], block, resTransactionReceipt[index])
       //logger.info(`convertTransactionFormatAsync create transaction #${index}, transactions count ${resTransactionReceipt.length}.`)
-      
       transactions.push(transaction)
     }
     return transactions
   } catch (error) {
-    logger.log('error', `convertTransactionFormatAsync fail,  error ${error}`)
-    logger.log('error', `convertTransactionFormatAsync block # ${block.number} fail, need to do again`)
-    
+    logger.error(`convertTransactionFormatAsync fail,  error ${error}`)
+    logger.error(`convertTransactionFormatAsync block # ${block.number} fail, need to do again`)
     return null
   }
 }
@@ -145,7 +149,6 @@ export async function getTransactionsAsync (block, address) : Promise<Array<Tran
     return null
   }
 }
-
 
 // not in use - to remove
 export async function getTransactionsRawAsync (startBlock: number, endBlock: number): Promise<Array<Transaction>> {
