@@ -16,8 +16,13 @@ router.get('/:address/:limit?', async (req, res, next) => {
     let highestBlockNumber = highestBlock.number  
 
     let limit = req.params.limit ? req.params.limit : 50
-    let result = await dbUtils.getAccountTransactionsAsync(req.params.address, req.params.limit)
-    result.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)
+    let resultTo = await dbUtils.getAccountToTransactionsAsync(req.params.address, req.params.limit)
+    resultTo.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)
+    
+    let resultFrom = await dbUtils.getAccountFromTransactionsAsync(req.params.address, req.params.limit)
+    resultFrom.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)    
+
+    let result = resultTo.concat(resultFrom)
     return res.json(
       {
         'status': '1',

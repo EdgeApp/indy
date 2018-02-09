@@ -19,9 +19,18 @@ export async function getAccountAsync (address: string) : Promise<any> {
   })
 }
 
-export async function getAccountTransactionsAsync (account: string, limitTransactions: number = 10) : Promise<Array<any>> {
+
+export async function getAccountFromTransactionsAsync (account: string, limitTransactions: number = 10) : Promise<Array<any>> {
+  return await getAccountTransactionsAsync("fromAccountView", account, limitTransactions)
+}
+
+export async function getAccountToTransactionsAsync (account: string, limitTransactions: number = 10) : Promise<Array<any>> {
+  return await getAccountTransactionsAsync("toAccountView", account, limitTransactions)
+}
+
+export async function getAccountTransactionsAsync (view: string, account: string, limitTransactions: number = 10) : Promise<Array<any>> {
   return new Promise<Array<any>>(async (resolve, reject) => {
-    historyDb.view('designDoc', 'fromAccountView', {keys: [account], include_docs: true, limit:limitTransactions}, function(err, body) {  
+    historyDb.view('designDoc', view, {keys: [account], include_docs: true, limit:limitTransactions}, function(err, body) {  
       if (!err) {
         let result = []
         body.rows.forEach(function(row) {
