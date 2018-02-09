@@ -80,7 +80,7 @@ export class IndexerHistoryTransactions{
       logger.info(`startIndexerProcess error:, ${error}`)
       throw error      
   }    
-    await this.Validate();      
+    await this.startLiveIndexerProcess()
   }
 
   // take care of the current range, fetch #BlockStep blocks and save 
@@ -139,7 +139,61 @@ export class IndexerHistoryTransactions{
     }    
   }
 
-  private async Validate() {
+  async startLiveIndexerProcess() {
+    
+    let highestBlock = await this.web3.eth.getBlock('pending')
+    // if((highestBlock - this.indexSetttings.lastBlockNumber) > 100) {
+    //   logger.error(`startLiveIndexerProcess error , highestBlock ${highestBlock} - lastBlockNumber ${this.indexSetttings.lastBlockNumber} diff is too much, abort!`)
+    //   throw(new Error('indexBlockRangeTransactions - error, abort!'))      
+    // }
 
+    let startBlockNumber = highestBlock.number - configuration.MaxEphemeralForkBlocks      
+    this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
+    this.indexSetttings.lastBlockNumber = startBlockNumber
+
+    let liveTransactions = []
+    let lastHighestBlockNumber = 0
+    let lastHighestBlockHash = ''
+
+
+    while(true) {
+
+      var startTime = process.hrtime();
+      
+      let blockDelta = highestBlock.number - this.indexSetttings.lastBlockNumber - configuration.MaxEphemeralForkBlocks 
+      logger.info(`startLiveIndexerProcess blockDelta ${blockDelta}`)
+      logger.info(`startLiveIndexerProcess highestBlock.number ${highestBlock.number}`)
+      logger.info(`startLiveIndexerProcess lastHighestBlockNumber ${lastHighestBlockNumber}`)
+      
+      if(blockDelta > 0) {
+        logger.info(`indexBlockRangeTransactions save ${blockDelta} history blocks, ${this.indexSetttings.startBlockNumber} - ${this.indexSetttings.startBlockNumber + blockDelta}`)
+        await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.startBlockNumber + blockDelta)  
+        this.indexSetttings.startBlockNumber += blockDelta
+      }
+      
+      if(highestBlock.number < lastHighestBlockNumber || 
+        (highestBlock.number == lastHighestBlockNumber && lastHighestBlockHash != highestBlock.hash)) {
+        logger.info(`startLiveIndexerProcess reorg!`)
+        liveTransactions = await blockchainUtils.getBlockTransactionsAsync(this.indexSetttings.startBlockNumber, highestBlock.number)
+      } else {
+        if((blockDelta) > 0) {
+          logger.info(`startLiveIndexerProcess remove last blocks, add new blocks !`)
+          let transactions = await blockchainUtils.getBlockTransactionsAsync(lastHighestBlockNumber, highestBlock.number)
+          liveTransactions = liveTransactions.filter((t) => { t.blockNumber > highestBlock.number - configuration.MaxEphemeralForkBlocks})
+          liveTransactions.concat(transactions)
+        }
+      }
+
+      lastHighestBlockNumber = highestBlock.number
+      lastHighestBlockHash = highestBlock.hash
+
+      let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime));
+      let nextFetch = (15 - elapsedSeconds) * 1000
+    //  await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+      
+      await utils.timeout(nextFetch)
+
+      highestBlock = await this.web3.eth.getBlock('pending')
+    }
   }  
 }

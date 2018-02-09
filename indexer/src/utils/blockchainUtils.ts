@@ -7,6 +7,7 @@ const Web3 = require('web3')
 const web3 = new Web3()
 web3.setProvider(configuration.provider)
 
+
 export async function getBlockTransactionsAsync (startBlock: number, endBlock: number): Promise<Array<Transaction>> {
   let transactions = []
   let startIndex = startBlock

@@ -1,7 +1,6 @@
-import * as indexHistory from '../../indexer/indexerHistory'
 import * as logger from 'winston'
 import * as express from 'express'
-import { IndexerHistory } from '../../indexer/indexerHistory';
+import { IndexerHistoryTransactions } from '../../indexer/indexerHistoryTransactions';
 
 const router = express.Router()
 
