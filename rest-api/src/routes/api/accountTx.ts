@@ -11,7 +11,6 @@ const router = express.Router()
 // return all transactions history for account address
 router.get('/:address/:limit?', async (req, res, next) => {
   try {
-    //let result = await dbUtils.getAccountAsync(req.params.address)
     let highestBlock = await web3.eth.getBlock('pending')
     let highestBlockNumber = highestBlock.number  
 
