@@ -1,3 +1,5 @@
+import * as consts from '../../../common/consts'
+
 import { configuration } from '../config/config'
 import { dbHandler } from '../utils/couchdb'
 import { async } from 'async'
@@ -46,73 +48,74 @@ async function initDB (DBName : string) {
   })
 }
 
-
-// decalre emit so ts will compile
+ // decalre emit so ts will compile
 declare function emit(key: any, value: any): void;
 
-var dbViews = {}
-dbViews['to'] = 
-{  
-  map: function(doc) {
-    if (doc.to) {
-      emit(doc.to, {_id: doc._id});
-    }
-  }
-}
-dbViews['from'] =   
-{  
-  map: function(doc) {
-    if (doc.from) {
-      emit(doc.from, {_id: doc._id});
-    }
-  }
-}  
-dbViews['blockNumber'] =   
-{  
-  map: function(doc) {
-    if (doc.blockNumber) {
-      emit(doc.blockNumber, {_id: doc._id});
-    }
-  }
-} 
-dbViews['contractAddress'] =   
-{  
-  map: function(doc) {
-    if (doc.contractAddress) {
-      emit(doc.contractAddress, {_id: doc._id});
-    }
-  }
-}  
-
 export async function addViewsAsync () : Promise<void> {
-  await addViewAsync('toDoc',dbViews['to'])
-  await addViewAsync('fromDoc',dbViews['from'])
-  await addViewAsync('blockDoc',dbViews['blockNumber'])
-  await addViewAsync('contract',dbViews['contractAddress'])
+
+  let dbViews = {}
+  dbViews[consts.toDoc] = 
+  {  
+    map: function(doc) {
+      if (doc.to) {
+        emit(doc.to, {_id: doc._id});
+      }
+    }
+  }
+  dbViews[consts.fromDoc] =   
+  {  
+    map: function(doc) {
+      if (doc.from) {
+        emit(doc.from, {_id: doc._id});
+      }
+    }
+  }  
+  dbViews[consts.blockDoc] =   
+  {  
+    map: function(doc) {
+      if (doc.blockNumber) {
+        emit(doc.blockNumber, {_id: doc._id});
+      }
+    }
+  } 
+  dbViews[consts.contract] =   
+  {  
+    map: function(doc) {
+      if (doc.contractAddress) {
+        emit(doc.contractAddress, {_id: doc._id});
+      }
+    }
+  }  
+
+  await addViewAsync(consts.toDoc ,dbViews[consts.toDoc])
+  await addViewAsync(consts.fromDoc,dbViews[consts.fromDoc])
+  await addViewAsync(consts.blockDoc,dbViews[consts.blockDoc])
+  await addViewAsync(consts.contract,dbViews[consts.contract])
+  
 }
 
 export async function addViewAsync (viewName:string, view: any) : Promise<void> {
-  let db = dbHandler.use('supernodedb')
+  let db = dbHandler.use(configuration.HistoryDBName)
   let designDocName = '_design/' + viewName
 
   let ddoc = {
     language: 'javascript',
-    views: {view}
+    views: { [consts.fixedViewName] : view}
   };
 
   return new Promise<void>((resolve, reject) => {
     db.get(designDocName, function (error, existing) {
       if (!error) {
-        logger.info(`DB view ${viewName} exist, no need to update, only view adding allowed.`)
+        logger.info(`DB design doc view ${designDocName} exist, no update, only adding allowed.`)
         resolve()
       } else {
         db.insert(ddoc, designDocName, function (error, response) {
           if (!error) {
-            logger.info(`DB view ${viewName} created`)
+            logger.info(`DB doc view ${designDocName} created`)
             resolve()
           } else {
-            logger.log('error', `error creating ${viewName} view`)
-            reject(new Error(`error creating ${viewName} view`))
+            logger.log('error', `error creating doc view ${designDocName}`)
+            reject(new Error(`error creating doc view ${designDocName}`))
           }
         })
       }
