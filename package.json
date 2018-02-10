@@ -26,6 +26,8 @@
     "flow-bin": "^0.63.1",
     "multimap": "^1.0.2",
     "nano": "^6.4.2",
+    "request": "^2.83.0",
+    "request-promise": "^4.2.2",
     "web3": "^1.0.0-beta.27",
     "winston": "^2.4.0"
   },

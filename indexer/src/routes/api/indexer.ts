@@ -1,16 +1,21 @@
 import * as logger from 'winston'
 import * as express from 'express'
-import { IndexerHistoryTransactions } from '../../indexer/indexerHistoryTransactions';
+import { IndexerTransactions } from '../../indexer/indexerTransactions';
 
 const router = express.Router()
 
-router.get('/start/:startBlock?/:endBlock?', async (req, res, next) => {
-  let startBlock = Number(req.params.startBlock)
-  let endBlock = Number(req.params.endBlock)
+router.get('/liveBlocks/:address', async (req, res, next) => {
+  let address = Number(req.params.address)
 
-  logger.info(`starting index from block: ${startBlock} to block ${endBlock}`)
-  let indexerHistor = req.app.get('indexerHistory')
-  await indexerHistor.startIndex(startBlock, endBlock)
+  let indexderLive = req.app.get('indexerTransactions')
+  let liveTransactions = indexderLive.liveTransactionsMap
+
+  let resTransactions = []
+  liveTransactions.forEach(function (item, key, mapObj) {  
+    let transactions = item.filter((t) => {t.from == address || t.to == address})
+    resTransactions = resTransactions.concat(transactions)
+  })
+  return res.json(resTransactions)  
 })
 
 module.exports = router

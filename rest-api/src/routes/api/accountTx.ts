@@ -1,3 +1,4 @@
+import * as request from 'request-promise'
 import * as express from 'express'
 import * as logger from 'winston'
 import * as dbUtils from '../../utils/dbUtils'
@@ -21,7 +22,15 @@ router.get('/:address/:limit?', async (req, res, next) => {
     let resultFrom = await dbUtils.getAccountFromTransactionsAsync(req.params.address, req.params.limit)
     resultFrom.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)    
 
+    let reqRes = await request({
+      uri: 'indexer/liveBlocks/' + req.params.address,
+      baseUrl: 'http://127.0.0.1:3001/',
+      json: true
+    })    
+
     let result = resultTo.concat(resultFrom)
+    result = result.concat(reqRes)
+
     return res.json(
       {
         'status': '1',

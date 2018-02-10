@@ -20,6 +20,7 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
       }
       logger.info(`getBlockTransactionsAsync waiting for blocks #${startIndex - index} - #${startIndex - 1} requests`)
       let resBlocks = await Promise.all(blocksPromises)
+      logger.info('getBlockTransactionsAsync got blocks')
       for (let blockIndex = 0; blockIndex < resBlocks.length; blockIndex++) {
         let block = resBlocks[blockIndex]
         if (block) {
@@ -91,6 +92,70 @@ export async function convertTransactionFormatAsync (block: any, web3transaction
     return null
   }
 }
+
+// LIVE METHODS
+// get live blocks, save in map, block to its fetched transactions
+export async function getBlockTransactionsMapAsync (startBlock: number, endBlock: number): Promise<Map<number, Array<Transaction>>> {
+  let blockMap = new Map()
+  let startIndex = startBlock
+  let transactionCount = 0
+  while (startIndex <= endBlock) {
+    let blocksPromises = []
+    for (let index = 0; startIndex <= endBlock && index <= configuration.BlockReqeusts; index++, startIndex++) {
+      blocksPromises.push(web3.eth.getBlock(startIndex, true))
+    }
+    let resBlocks = await Promise.all(blocksPromises)
+    for (let blockIndex = 0; blockIndex <= resBlocks.length; blockIndex++) {
+      let block = resBlocks[blockIndex]
+      if (block) {
+        try {
+          let transactions = await getTransactionsFromBlockAsync(block)
+          blockMap.set(block.number, transactions)
+          transactionCount += transactions.length
+        } catch (error) {
+          logger.info(error)
+          return null
+        }
+      }
+    }
+  }
+  logger.info(`getBlockTransactionsMapAsync - total transactions ${transactionCount} in block #${startBlock} to block #${endBlock}.`)
+  return blockMap
+}
+  
+export function updateLiveBlocks(liveTransactionsMap: Map<number, Transaction[]>, newBlocksMap: Map<number, Transaction[]>, startBlock: number, endBlock: number) {
+  removeOldBlocks(liveTransactionsMap, startBlock, endBlock)
+  for (let blockIndex = startBlock; blockIndex <= endBlock; blockIndex++) {
+    try {
+      let blockEntry = newBlocksMap.get(blockIndex)
+      liveTransactionsMap.set(blockIndex, blockEntry)
+    } catch (error) {
+      logger.error(error)
+      throw error
+    }
+  }  
+}
+
+
+
+export function removeOldBlocks(liveTransactionsMap: Map<number, Transaction[]>, startBlock: number, endBlock: number) {
+  for (let blockIndex = startBlock; blockIndex <= endBlock; blockIndex++) {
+    try {
+      liveTransactionsMap.delete(blockIndex)
+    } catch (error) {
+      logger.error(error)
+      throw error
+    }
+  }
+}
+
+
+
+
+
+
+
+
 
 // not in use - to remove
 // for every block, fetch all transactions.

@@ -4,7 +4,7 @@ import * as logger from 'winston'
 import * as applicationRoutes from './bootstrap/routes'
 import * as db from './bootstrap/db'
 import { configuration } from './config/config'
-import { IndexerHistoryTransactions } from './indexer/indexerHistoryTransactions';
+import { IndexerTransactions } from './indexer/indexerTransactions';
 
 let app = express()
 logging.load(app)
@@ -16,15 +16,15 @@ process.on('uncaughtException', function (err) {
 
 applicationRoutes.load(app)
 
-let indexerHistory = new IndexerHistoryTransactions()
+let indexerTransactions = new IndexerTransactions()
 
 db.CreateDataBases().then( async () => {
-  await indexerHistory.startIndexerProcess()
-  //await indexerHistory.startLiveIndexerProcess()
+  //await indexerHistory.startIndexerProcess()
+  await indexerTransactions.startLiveIndexerProcess()
 })
 
 app.set('config', configuration)
-app.set('indexerHistory', indexerHistory)
+app.set('indexerTransactions', indexerTransactions)
 
 logger.info(`parent process is pid ${process.pid}`);
 
