@@ -29,7 +29,10 @@ router.get('/:address/:limit?', async (req, res, next) => {
     })    
 
     let result = resultTo.concat(resultFrom)
-    result = result.concat(reqRes)
+
+    if(reqRes.status === '1') {
+      result = result.concat(reqRes.result)
+    }
 
     return res.json(
       {

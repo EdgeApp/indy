@@ -4,19 +4,53 @@ import { IndexerTransactions } from '../../indexer/indexerTransactions';
 
 const router = express.Router()
 
-router.get('/liveBlocks/:address', async (req, res, next) => {
-  let address = Number(req.params.address)
+router.get('/liveBlocks/:address?', async (req, res, next) => {
+  try {
+    let indexderLive = req.app.get('indexerTransactions')
+    let liveTransactions = indexderLive.liveBlocksTransactionsMap
+    let filterAddress = req.params.address
+    logger.info(`req.params.address ${req.params.address}`)
+    logger.info(`filterAddress ${filterAddress}`)
 
-  let indexderLive = req.app.get('indexerTransactions')
-  let liveTransactions = indexderLive.liveTransactionsMap
-
-  let resTransactions = []
-  liveTransactions.forEach(function (item, key, mapObj) {  
-    let transactions = item.filter((t) => {t.from == address || t.to == address})
-    resTransactions = resTransactions.concat(transactions)
-  })
+    if(!liveTransactions || (liveTransactions &&! liveTransactions.length)) {
+      return res.json(
+        {
+          'status': '0',
+          'message': 'liveTransactions not availble yet',
+          'result': 'not found'
+        })    
+    }
   
-  return res.json(resTransactions)  
+    let resTransactions = []
+    liveTransactions.forEach(function (value, key, mapObj) {  
+      
+      if(filterAddress) {
+        logger.info(`filterAddress not null`)
+        let fromTransactions = value.transactions.filter((t) => t.from === filterAddress)
+        let toTransactions = value.transactions.filter((t) => t.to === filterAddress)
+        resTransactions = resTransactions.concat(fromTransactions)
+        resTransactions = resTransactions.concat(toTransactions)        
+      } else { // TODO, remove this
+        logger.info(`filterAddress IS null, fetch all, for debug only, need to remove this`)        
+        resTransactions = resTransactions.concat(value.transactions)
+      }
+    })
+
+    return res.json(
+      {
+        'status': '1',
+        'message': 'OK',
+        'result': resTransactions
+      })
+
+  } catch (error) {
+    return res.json(
+      {
+        'status': '0',
+        'message': error,
+        'result': 'not found'
+      })      
+  }
 })
 
 module.exports = router
