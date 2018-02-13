@@ -31,6 +31,7 @@ router.get('/:address/:limit?', async (req, res, next) => {
     let result = resultTo.concat(resultFrom)
 
     if(reqRes.status === '1') {
+      reqRes.result.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)    
       result = result.concat(reqRes.result)
     }
 

@@ -16,5 +16,5 @@ function setApplicationRoutes (app) {
   app.use('/account', accountTxContoller)
 
   let tokenTxContoller = require('../routes/api/tokenTx')
-  app.use('/token', tokenTxContoller)
+  app.use('/tokens', tokenTxContoller)
 }

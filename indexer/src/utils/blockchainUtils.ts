@@ -59,7 +59,7 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
   try {
     let transactionCount = 0
     if (block && block.transactions) {
-      logger.info(`block #${block.number}, transactions count ${block.transactions.length}.`)
+      //logger.info(`block #${block.number}, transactions count ${block.transactions.length}.`)
       // fetch receipt and construct Array<Transactsion>
       let resTransactions = await convertTransactionFormatAsync(block, block.transactions)
       // handle RPC errors
@@ -91,7 +91,7 @@ export async function convertTransactionFormatAsync (block: any, web3transaction
     for (let index = 0; index < web3transactions.length; index++) {
       transactionReceiptPromises.push(web3.eth.getTransactionReceipt(web3transactions[index].hash))
     }
-    logger.info(`convertTransactionFormatAsync wait for ${web3transactions.length} transactions receipt requests .`)    
+    //logger.info(`convertTransactionFormatAsync wait for ${web3transactions.length} transactions receipt requests .`)    
     let resTransactionReceipt = await Promise.all(transactionReceiptPromises)
     // for each transaction, construct a Transaction and add to transactions array
     for (let index = 0; index < resTransactionReceipt.length; index++) {

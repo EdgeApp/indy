@@ -78,15 +78,19 @@ export async function saveIndexerSettingsAsync (settings: any) : Promise<void> {
 // call this function to make the views index the data and keep them updated.
 export async function refreshViews(account: string){
   // do not wait for the functions, let them work async
-  getAccountContractTransactionsAsync(account) 
+  logger.info('****************')
+  logger.info('**refreshViews**')
+  logger.info('****************')
+
+  getAccountContractTransactionsAsync(account, "dummy contract address") 
   getAccountBlockTransactionsAsync(account) 
   getAccountFromTransactionsAsync(account) 
   getAccountToTransactionsAsync(account) 
 }
 
 
-export async function getAccountContractTransactionsAsync (account: string, limitTransactions: number = 10) : Promise<Array<any>> {
-  return await getAccountTransactionsAsync(consts.contract, consts.fixedViewName, account, limitTransactions)
+export async function getAccountContractTransactionsAsync (accountFrom: string, contractAddress: string, limitTransactions: number = 10) : Promise<Array<any>> {
+  return await getAccountTransactionsByContractAsync(consts.contract, consts.fixedViewName, accountFrom, contractAddress, limitTransactions)
 }
 
 export async function getAccountBlockTransactionsAsync (account: string, limitTransactions: number = 10) : Promise<Array<any>> {
@@ -121,6 +125,28 @@ export async function getAccountTransactionsAsync (doc: string, view: string, ac
     })
   })
 }
+
+export async function getAccountTransactionsByContractAsync (doc: string, view: string, account: string, contractAddress: string,limitTransactions: number = 10) : Promise<Array<any>> {
+  return new Promise<Array<any>>(async (resolve, reject) => {
+    historyDb.view(doc, view, {key: [ account, null,  contractAddress], include_docs: true, limit:limitTransactions}, function(err, body) {  
+      if (!err) {
+        let result = []
+        body.rows.forEach(function(row) {
+          delete row.doc._id
+          delete row.doc._rev
+          result.push(row.doc)
+          logger.info(row.doc)
+        })
+        logger.info(`getAccountTransactionsAsync result count: ${result.length}`)
+        resolve(result)
+      } else {
+        logger.info(err);
+        reject(new Error(`Error getAccountTransactionsAsync ${account}`))
+      }
+    })
+  })
+}
+
 
 //******************************************************************/
 //    all functions from here are not in use - to be deleted later //

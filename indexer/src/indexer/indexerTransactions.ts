@@ -110,6 +110,8 @@ export class IndexerTransactions{
 
         this.indexSetttings.lastBlockNumber = end
         await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+        // do not wait for this call, let it run on the backgound
+        dbUtils.refreshViews("dummyaccount")
       }     
     } catch (error) {
       logger.log('error',`startIndex error in blocks ${startBlock} - ${endBlock}, abort!`)
