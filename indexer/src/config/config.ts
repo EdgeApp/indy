@@ -33,5 +33,4 @@ export class Config {
   _ipcPath: string
  
  }
-
  export const configuration = new Config()

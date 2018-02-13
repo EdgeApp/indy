@@ -78,14 +78,22 @@ export async function addViewsAsync () : Promise<void> {
       }
     }
   } 
+  // dbViews[consts.contract] =   
+  // {  
+  //   map: function(doc) {
+  //     if (doc.contractAddress) {
+  //       emit(doc.contractAddress, {_id: doc._id});
+  //     }
+  //   }
+  // }  
   dbViews[consts.contract] =   
   {  
     map: function(doc) {
       if (doc.contractAddress) {
-        emit(doc.contractAddress, {_id: doc._id});
+        emit([doc.from, doc.to, doc.contractAddress], {_id: doc._id});
       }
     }
-  }  
+  }    
 
   await addViewAsync(consts.toDoc ,dbViews[consts.toDoc])
   await addViewAsync(consts.fromDoc,dbViews[consts.fromDoc])

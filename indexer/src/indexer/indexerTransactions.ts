@@ -5,10 +5,11 @@ import * as utils from '../utils/utils'
 import { IndexerSettings } from '../indexer/indexerSettings'
 import { configuration } from '../config/config'
 import { Transaction } from '../../../common/models/transaction'
-
+import { SortedMap } from 'collections/sorted-map'
 
 const Web3 = require('web3')
 
+// call to handle all indexing
 export class IndexerTransactions{
   constructor() {
     this.web3 = new Web3()
@@ -19,23 +20,21 @@ export class IndexerTransactions{
   web3: any
   indexSetttings : IndexerSettings
   transactionCount : number
-  liveTransactionsMap: Map<number, Transaction[]>
+  liveBlocksTransactionsMap: SortedMap<number, { transactions: Transaction[], blockHash :string }>
 
   // start procees, do first block range, then take next availble range
   async startIndexerProcess () {
     logger.info('startIndexerProcess')
   
     var totalStartTime = process.hrtime();
-    // first time
+    // function init, try to read the indexer settings from DB
     try {
       this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
-      let startTime = process.hrtime();
-      let last = this.indexSetttings.lastBlockNumber
+      logger.info(`startIndexerProcess, index setting exist, start index from ${this.indexSetttings.lastBlockNumber} to ${this.indexSetttings.endBlockNumber}`)
+      // start chunk index
       await this.startIndex(this.indexSetttings.lastBlockNumber, this.indexSetttings.endBlockNumber) 
-      let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime));
-      logger.info(`startIndexerProcess method, ${this.indexSetttings.endBlockNumber - last} blocks, duration in sec: ${elapsedSeconds}`)          
     } catch (error) {
-      // first chunk, no settings in db yet
+      // error - first chunk, no settings in db yet, first time indexing
       if(!this.indexSetttings)
       {
         this.indexSetttings = new IndexerSettings()
@@ -44,6 +43,8 @@ export class IndexerTransactions{
         this.indexSetttings.lastBlockNumber = 45000
         this.indexSetttings.endBlockNumber = 45000 + configuration.BlockChunkSize
         await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+        logger.info(`startIndexerProcess, index setting created, first start index from ${this.indexSetttings.lastBlockNumber} to ${this.indexSetttings.endBlockNumber}`)
+        // start first time chunk index
         await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber) 
       }
       else {
@@ -55,6 +56,7 @@ export class IndexerTransactions{
     let highestBlock : any
     let highestBlockNumber : number      
 
+    // for all history blocks, up to the live MaxEphemeralForkBlocks blocks - index in chunks
     try {
       do {      
         highestBlock = await this.web3.eth.getBlock('pending')
@@ -83,6 +85,9 @@ export class IndexerTransactions{
       logger.info(`startIndexerProcess error:, ${error}`)
       throw error      
   }    
+    logger.info('******************************************************************************')
+    logger.info('**    startIndexerProcess history finished, satrt startLiveIndexerProcess    **')
+    logger.info('******************************************************************************')
     await this.startLiveIndexerProcess()
   }
 
@@ -118,8 +123,8 @@ export class IndexerTransactions{
     try {
       let transactions = await blockchainUtils.getBlockTransactionsAsync(startBlock, endBlock)
       if(!transactions) {
-        logger.log('error','blockchainUtils.getTransactionsRawAsync return null, abort')
-        throw(new Error('blockchainUtils.getTransactionsRawAsync return null, abort.'))
+        logger.log('error','blockchainUtils.getBlockTransactionsAsync return null, abort')
+        throw(new Error('blockchainUtils.getBlockTransactionsAsync return null, abort.'))
       }
       logger.info(`indexBlockRangeTransactions ${transactions.length} transactions returned from block #${startBlock} to block #${endBlock}.`)
       this.transactionCount += transactions.length
@@ -132,11 +137,12 @@ export class IndexerTransactions{
     }    
   }
 
+  // save transactions in bulks
   async saveTransactions (transactions: any) : Promise<void> {
     try {
-      while (transactions.length)
+      while (transactions.length) 
       {
-        let transactionsToSave = transactions.splice(0, configuration.LimitTransactionBlukSave)
+        let transactionsToSave = transactions.splice(0, configuration.LimitTransactionBlukSave)        
         try {
           await dbUtils.saveTransactionsBulkAsync(transactionsToSave)
         } catch (error) {
@@ -152,77 +158,55 @@ export class IndexerTransactions{
     }    
   }    
 
-
-  liveBlocks
-
+  // method to index incoming blocks
+  // always save 12 live blocks to avoid indexing reorg blocks
+  // save older blocks
   async startLiveIndexerProcess() {
     this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
+    let lastSavedBlock = this.indexSetttings.lastBlockNumber
+    let lastHighestBlockNumber = this.indexSetttings.lastBlockNumber
     let highestBlock = await this.web3.eth.getBlock('pending')
-    let liveBlocksNumber = configuration.MaxEphemeralForkBlocks    
-    let lastSavedBlock = highestBlock.number - 20 //this.indexSetttings.lastBlockNumber
-    let lastHighestBlockNumber = highestBlock.number - 2
-    let lastHighestBlockHash = highestBlock.hash
-    
+    // debug patch
+    //let lastHighestBlockNumber = highestBlock.number - 3
+    //let lastSavedBlock = highestBlock.number - 30
     
     logger.info(`init startLiveIndexerProcess lastSavedBlock ${lastSavedBlock}`)
     logger.info(`init startLiveIndexerProcess highestBlock.number ${highestBlock.number}`)
     logger.info(`init startLiveIndexerProcess lastHighestBlockNumber ${lastHighestBlockNumber}`)    
 
-    if((lastSavedBlock + 100) < highestBlock.number)
-      return
+    if((lastSavedBlock + 100) < highestBlock.number) {
+      logger.error(`startLiveIndexerProcess lastSaveBlock ${lastSavedBlock} + 100 < highestBlock ${highestBlock.number}`)
+      logger.error('startLiveIndexerProcess gap is too much, check what went wrong and restart the history indexing')
+      throw(new Error('startLiveIndexerProcess gap is too much, check what went wrong and restart the history indexing'))
+    }
 
     var startMapTime = process.hrtime();
     
-    this.liveTransactionsMap = await blockchainUtils.getBlockTransactionsMapAsync(lastSavedBlock, highestBlock.number)    
+    logger.info(`init startLiveIndexerProcess, fetch all blocks, from ${lastSavedBlock} to ${highestBlock.number}`)
+    this.liveBlocksTransactionsMap = await blockchainUtils.getBlockTransactionsMapAsync(lastSavedBlock, highestBlock.number)    
+
     let elapsedMapSeconds = utils.parseHrtimeToSeconds(process.hrtime(startMapTime))
     logger.info(`init startLiveIndexerProcess blockchainUtils.getBlockTransactionsMapAsync sec: ${elapsedMapSeconds}`)      
     
     while(true) {
       var startTime = process.hrtime();
 
-      logger.info(`*********************************************`)
-      logger.info(`*************live start loop*****************`)
-      logger.info(`*********************************************`)
+      logger.info(`************************************************`)
+      logger.info(`************* live blocks loop *****************`)
+      logger.info(`************************************************`)
       
       highestBlock = await this.web3.eth.getBlock('pending')
       logger.info(`live highestBlock.number ${highestBlock.number}`)
-
-      let numberOfblocksFetch = highestBlock.number - lastHighestBlockNumber
-      let numberOfblocksTosave = highestBlock.number - lastSavedBlock - liveBlocksNumber
-
-      // TODO - take care of new block samll than last
-      let fetchLastBlockAgain = !numberOfblocksFetch && lastHighestBlockHash != highestBlock.hash
-      
-      logger.info(`live numberOfblocksFetch ${numberOfblocksFetch}`)
-      logger.info(`live numberOfblocksTosave ${numberOfblocksTosave}`)
-      logger.info(`live fetchLastBlockAgain (lastet reorg) ${fetchLastBlockAgain}`)
-      
-      if(numberOfblocksFetch || fetchLastBlockAgain) {
-        logger.info(`live new ${numberOfblocksFetch} blocks to fetch`)
-        let fetchStart = fetchLastBlockAgain ? lastHighestBlockNumber - 1 : lastHighestBlockNumber
-        let newBlocksMap = await blockchainUtils.getBlockTransactionsMapAsync(fetchStart, highestBlock.number)
-        logger.info(`live newBlocksMap size ${newBlocksMap.size} result`)
-        
-        blockchainUtils.updateLiveBlocks(this.liveTransactionsMap, newBlocksMap, lastHighestBlockNumber, highestBlock.number)
-        logger.info(`live liveTransactionsMap size ${this.liveTransactionsMap.size} after blocks update`)        
-      }      
-      // save old blocks, bring new ones
-      if(numberOfblocksTosave > 0) {
-        // save  the numberOfblocksTosave form the map
-        logger.info(`live saveLiveBlocks from ${lastSavedBlock} to ${lastSavedBlock + numberOfblocksTosave}`)        
-        await this.saveLiveBlocks(this.liveTransactionsMap, lastSavedBlock, lastSavedBlock + numberOfblocksTosave)
-        logger.info(`live liveTransactionsMap size ${this.liveTransactionsMap.size} after saveLiveBlocks`)        
-        
-        logger.info(`live removeOldBlocks from ${lastSavedBlock} to ${lastSavedBlock + numberOfblocksTosave}`)        
-        blockchainUtils.removeOldBlocks(this.liveTransactionsMap, lastSavedBlock, lastSavedBlock + numberOfblocksTosave)
-        logger.info(`live liveTransactionsMap size ${this.liveTransactionsMap.size} after saveLiveBlocks`)        
-
-        lastSavedBlock += numberOfblocksTosave + 1
-        logger.info(`live lastSavedBlock ${lastSavedBlock}`)
-      }
-
-      lastHighestBlockNumber = highestBlock.number
       logger.info(`live lastHighestBlockNumber ${lastHighestBlockNumber}`)
+
+      // update the map to hold the current blocks
+      await this.updateLiveBlocks(highestBlock)
+      
+      logger.info(`live update lastHighestBlockNumber ${lastHighestBlockNumber}`)
+      lastHighestBlockNumber = highestBlock.number
+
+      logger.info(`live saveAndRemoveHistoryBlocks, highest block: ${highestBlock.number}`)
+      lastSavedBlock = await this.saveAndRemoveHistoryBlocks(highestBlock)
 
       let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
       logger.info(`live update elpase sec: ${elapsedSeconds}`)      
@@ -236,7 +220,6 @@ export class IndexerTransactions{
       
       logger.info(`live lastSavedBlock ${lastSavedBlock}`)
       logger.info(`live highestBlock.number ${highestBlock.number}`)
-      logger.info(`live lastHighestBlockNumber ${lastHighestBlockNumber}`)  
 
       await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
 
@@ -244,23 +227,80 @@ export class IndexerTransactions{
       await utils.timeout(nextFetch)
 
     }
-  }  
- 
-  private async saveLiveBlocks(liveTransactionsMap: Map<number, Transaction[]>, startBlock: number, endBlock: number) {
-    for (let blockIndex = startBlock; blockIndex <= endBlock; blockIndex++) {
+  } 
+  
+  // update the map to hold the last 12 update blocks
+  // fetch block headers
+  // for every block , check hash, if change, bring block again
+  private async updateLiveBlocks(highestBlock: any) {
+    logger.info(`live updateLiveBlocks highestBlock.number ${highestBlock.number}`)
+    
+    let changedBlocks = []
+    let blockHeaders = await blockchainUtils.getBlockHeadersAsync(highestBlock.number)    
+    for (let blockIndex = 0; blockIndex < blockHeaders.length; blockIndex++) {
       try {
-        let blockEntry = liveTransactionsMap.get(blockIndex)
-        if(!blockEntry)
-          logger.error(`error in saveLiveBlocks, blockIndex: ${blockIndex}`)      
-        await this.saveTransactions(blockEntry)
+        let block = blockHeaders[blockIndex]
+        if(this.liveBlocksTransactionsMap.has(block.number)) {
+          let blockEntry = this.liveBlocksTransactionsMap.get(block.number)
+          if(blockEntry.blockHash != block.hash) {
+            logger.info(`live updateLiveBlocks block ${block.number} hash changed, add to changed blocks`)
+            changedBlocks.push(block)
+          }
+        }
+        else {
+          logger.info(`live updateLiveBlocks block ${block.number} not in live map, add to changed blocks`)
+          changedBlocks.push(block)
+        }
+      } catch (error) {
+        logger.error(error)
+        throw error
+      }
+    }  
+    // walk on all the blocks that need update, bring transactions for each block, and updte the live map
+    try {
+      if(changedBlocks.length > 0) {
+        logger.info(`live updateLiveBlocks changedBlocks > 0, bring blocks`)
+        for (let blockIndex = 0; blockIndex < changedBlocks.length; blockIndex++) {
+          let blockNumber = changedBlocks[blockIndex].number
+          // bring full block 
+          let blockTransactions = await blockchainUtils.getSingleBlockTransactionsAsync(blockNumber) 
+          logger.info(`live updateLiveBlocks update block ${blockNumber}`)
+          this.liveBlocksTransactionsMap.set(blockNumber, {transactions: blockTransactions, blockHash: changedBlocks[blockIndex].hash})
+        }
+      }    
+    } catch (error) {
+      logger.error(error)
+      throw error    
+    }
+  } 
+
+  // keep the liveTransactionsMap always in size of MaxEphemeralForkBlocks (12)
+  // save old blocks, and remove them from the map
+  private async saveAndRemoveHistoryBlocks( highestBlock: any): Promise<number> {
+    let offset = 0
+    let blockNumber = highestBlock.number - configuration.MaxEphemeralForkBlocks
+    let lastSave = blockNumber
+
+    logger.info(`saveAndRemoveHistoryBlocks highestBlock ${highestBlock.number}`)
+    logger.info(`saveAndRemoveHistoryBlocks liveTransactionsMap.length ${this.liveBlocksTransactionsMap.length}`)
+    // make sure transactions map contain no more than MaxEphemeralForkBlocks (12)
+    while(this.liveBlocksTransactionsMap.length > configuration.MaxEphemeralForkBlocks) {
+      try {
+        let entry = this.liveBlocksTransactionsMap.get(blockNumber)
+        if(entry) {
+          logger.info(`saveAndRemoveHistoryBlocks save and remove block ${blockNumber}`)
+          await this.saveTransactions(entry.transactions)
+          this.liveBlocksTransactionsMap.delete(blockNumber)
+        } else {
+          logger.info(`saveAndRemoveHistoryBlocks error, block ${blockNumber} not in map`)
+        }
+        blockNumber--
       } catch (error) {
         logger.error(error)
         throw error
       }
     }
-  }
-
-  private validate(): boolean {
-    return true
+    logger.info(`saveAndRemoveHistoryBlocks lastSave ${lastSave}`)
+    return lastSave
   }  
 }

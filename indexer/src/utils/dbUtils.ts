@@ -1,5 +1,6 @@
 import * as logger from 'winston'
 import * as utils from '../utils/utils'
+import * as consts from '../../../common/consts'
 import { Account } from '../../../common/models/account'
 import { Transaction } from '../../../common/models/transaction'
 import { dbHandler } from '../utils/couchdb'
@@ -9,7 +10,7 @@ import { IndexerSettings } from '../indexer/indexerSettings'
 const historyDb = dbHandler.use(configuration.HistoryDBName)
 const settingsDb = dbHandler.use(configuration.SettingDBName)
 
-// bulk accounts functions
+// bulk transactions functions
 export async function saveTransactionsBulkAsync (transactions: Array<Transaction>) : Promise<void> {
   let totalStartTime = process.hrtime();
   logger.info(`saving ${transactions.length} transactions`)
@@ -36,28 +37,6 @@ export async function saveTransactionsBulkAsync (transactions: Array<Transaction
   })
 }
 
-export async function saveSingleAccountAsync (account: any) : Promise<void> {
-  //logger.info(`saving account # ${account.address}`)
-  return new Promise<void>((resolve, reject) => {
-    historyDb.get(account.address, function (error, existing) {
-      if (!error) {
-       // logger.info(`account # ${account.address} exist, updating revision`)
-        account._rev = existing._rev
-        account.transactions = account.transactions.concat(existing.transactions)
-      }
-      historyDb.insert(account, account.address, function (error, response) {
-        if (!error) {
-         // logger.info(`account # ${account.address} inserted`)
-          resolve()
-        } else {
-          logger.log('error', `error creating account # ${account.address}, ${error}`)
-          reject(new Error(`error creating account # ${account.address}, ${error}`))
-        }
-      })
-    })
-  })
- }
- 
  // indexer settings functions
  export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
   logger.info(`fetching settings for # ${indexerID}`)
@@ -95,7 +74,57 @@ export async function saveIndexerSettingsAsync (settings: any) : Promise<void> {
   })
 }
 
-// all functions from here are not in use - to be deleted
+// in couchdb views are created and updated only when the are asked for data.
+// call this function to make the views index the data and keep them updated.
+export async function refreshViews(account: string){
+  // do not wait for the functions, let them work async
+  getAccountContractTransactionsAsync(account) 
+  getAccountBlockTransactionsAsync(account) 
+  getAccountFromTransactionsAsync(account) 
+  getAccountToTransactionsAsync(account) 
+}
+
+
+export async function getAccountContractTransactionsAsync (account: string, limitTransactions: number = 10) : Promise<Array<any>> {
+  return await getAccountTransactionsAsync(consts.contract, consts.fixedViewName, account, limitTransactions)
+}
+
+export async function getAccountBlockTransactionsAsync (account: string, limitTransactions: number = 10) : Promise<Array<any>> {
+  return await getAccountTransactionsAsync(consts.blockDoc, consts.fixedViewName, account, limitTransactions)
+}
+
+export async function getAccountFromTransactionsAsync (account: string, limitTransactions: number = 10) : Promise<Array<any>> {
+  return await getAccountTransactionsAsync(consts.fromDoc, consts.fixedViewName, account, limitTransactions)
+}
+
+export async function getAccountToTransactionsAsync (account: string, limitTransactions: number = 10) : Promise<Array<any>> {
+  return await getAccountTransactionsAsync(consts.toDoc, consts.fixedViewName, account, limitTransactions)
+}
+
+export async function getAccountTransactionsAsync (doc: string, view: string, account: string, limitTransactions: number = 10) : Promise<Array<any>> {
+  return new Promise<Array<any>>(async (resolve, reject) => {
+    historyDb.view(doc, view, {keys: [account], include_docs: true, limit:limitTransactions}, function(err, body) {  
+      if (!err) {
+        let result = []
+        body.rows.forEach(function(row) {
+          delete row.doc._id
+          delete row.doc._rev
+          result.push(row.doc)
+          logger.info(row.doc)
+        })
+        logger.info(`getAccountTransactionsAsync result count: ${result.length}`)
+        resolve(result)
+      } else {
+        logger.info(err);
+        reject(new Error(`Error getAccountTransactionsAsync ${account}`))
+      }
+    })
+  })
+}
+
+//******************************************************************/
+//    all functions from here are not in use - to be deleted later //
+//******************************************************************/
 export async function getAllDocsAsync ( ) : Promise<any> {
   logger.info(`getAllDocsAsync`)
   return new Promise((resolve, reject) => {
@@ -181,3 +210,26 @@ export async function saveAccountsAsync (accounts: Map<string, Account>) : Promi
   let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime));
   logger.info(`saveAccountsAsync ${accounts} accounts, duration in sec: ${elapsedSeconds}`)     
 }
+
+export async function saveSingleAccountAsync (account: any) : Promise<void> {
+  //logger.info(`saving transactions # ${account.address}`)
+  return new Promise<void>((resolve, reject) => {
+    historyDb.get(account.address, function (error, existing) {
+      if (!error) {
+       // logger.info(`account # ${account.address} exist, updating revision`)
+        account._rev = existing._rev
+        account.transactions = account.transactions.concat(existing.transactions)
+      }
+      historyDb.insert(account, account.address, function (error, response) {
+        if (!error) {
+         // logger.info(`account # ${account.address} inserted`)
+          resolve()
+        } else {
+          logger.log('error', `error creating account # ${account.address}, ${error}`)
+          reject(new Error(`error creating account # ${account.address}, ${error}`))
+        }
+      })
+    })
+  })
+ }
+

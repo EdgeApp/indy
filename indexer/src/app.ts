@@ -19,8 +19,8 @@ applicationRoutes.load(app)
 let indexerTransactions = new IndexerTransactions()
 
 db.CreateDataBases().then( async () => {
-  //await indexerHistory.startIndexerProcess()
-  await indexerTransactions.startLiveIndexerProcess()
+  await indexerTransactions.startIndexerProcess()
+  //await indexerTransactions.startLiveIndexerProcess()
 })
 
 app.set('config', configuration)

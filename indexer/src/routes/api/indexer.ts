@@ -15,6 +15,7 @@ router.get('/liveBlocks/:address', async (req, res, next) => {
     let transactions = item.filter((t) => {t.from == address || t.to == address})
     resTransactions = resTransactions.concat(transactions)
   })
+  
   return res.json(resTransactions)  
 })
 
