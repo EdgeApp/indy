@@ -2,7 +2,6 @@ import * as logger from 'winston'
 import { configuration } from '../config/config'
 import { Transaction } from '../../../common/models/transaction'
 
-
 const Web3 = require('web3')
 const web3 = new Web3()
 
@@ -10,7 +9,6 @@ web3.setProvider(configuration.provider)
 
 export async function getTransactions (block, address) : Promise<Array<Transaction>> {
   try {
-    let transactionCount = 0
     if (block && block.transactions) {
       logger.info(`block transactions count: ${block.transactions.length}.`)
 
@@ -21,9 +19,8 @@ export async function getTransactions (block, address) : Promise<Array<Transacti
       resTransactions = address ? resTransactions.filter((transaction) => (transaction.from === address || transaction.to === address)) : resTransactions
 
       let transactions = await convertTransactionFormat(block, resTransactions)
-      // logger.info(`results: ${JSON.stringify(transactions)}.`)
       return transactions
-    } 
+    }
   } catch (error) {
     return null
   }

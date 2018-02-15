@@ -1,6 +1,5 @@
 import * as logger from 'winston'
 import { configuration } from '../config/config'
-import { Account } from '../../../common/models/account'
 import { Transaction } from '../../../common/models/transaction'
 import { SortedMap } from 'collections/sorted-map'
 
@@ -35,8 +34,9 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
         if (block) {
           try {
             let res = await getTransactionsFromBlockAsync(block)
-            if(res)
+            if (res) {
               transactions = transactions.concat(res)
+            }
               // TODO - save fail blocks to setttings DB
           } catch (error) {
             logger.error(error)
@@ -48,8 +48,8 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
     }
   } catch (error) {
     logger.error(error)
-    return null    
-  }   
+    return null
+  }
   logger.info(`total transaction ${transactions.length} in block #${startBlock} to block #${endBlock}.`)
   return transactions
 }
@@ -65,17 +65,18 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
       // handle RPC errors
       // TODO - chage to work in time intervals
       let limit = 0
-      while(!resTransactions && limit++ < 10) { 
+      while (!resTransactions && limit++ < 10) {
         logger.error(`getTransactionsFromBlockAsync fail for block #${block.number}, resTransactions is null, fetching again, try #${limit}`)
         resTransactions = await convertTransactionFormatAsync(block, block.transactions)
-        if(resTransactions)
+        if (resTransactions) {
           logger.info(`getTransactionsFromBlockAsync succsefuly feched block #${block.number}`)
-        else
-         logger.error(`getTransactionsFromBlockAsync error fetch block #${block.number}, missing block`)
+        } else {
+          logger.error(`getTransactionsFromBlockAsync error fetch block #${block.number}, missing block`)
+        }
       }
       // TODO - save fail blocks to setttings DB
       return resTransactions
-    } 
+    }
   } catch (error) {
     logger.error(error)
     return null
@@ -91,11 +92,11 @@ export async function convertTransactionFormatAsync (block: any, web3transaction
     for (let index = 0; index < web3transactions.length; index++) {
       transactionReceiptPromises.push(web3.eth.getTransactionReceipt(web3transactions[index].hash))
     }
-    //logger.info(`convertTransactionFormatAsync wait for ${web3transactions.length} transactions receipt requests .`)    
+    //logger.info(`convertTransactionFormatAsync wait for ${web3transactions.length} transactions receipt requests .`)
     let resTransactionReceipt = await Promise.all(transactionReceiptPromises)
     // for each transaction, construct a Transaction and add to transactions array
     for (let index = 0; index < resTransactionReceipt.length; index++) {
-      let web3tran = web3transactions.findIndex((t) => t.hash == resTransactionReceipt[index].transactionHash)
+      let web3tran = web3transactions.findIndex((t) => t.hash === resTransactionReceipt[index].transactionHash)
       let transaction = new Transaction(web3transactions[web3tran], block, resTransactionReceipt[index])
       //logger.info(`convertTransactionFormatAsync create transaction #${index}, transactions count ${resTransactionReceipt.length}.`)
       transactions.push(transaction)
@@ -132,7 +133,7 @@ export async function getBlockTransactionsMapAsync (startBlock: number, endBlock
       if (block) {
         try {
           let transactions = await getTransactionsFromBlockAsync(block)
-          blockMap.set(block.number, { transactions: transactions, blockHash: block.hash})
+          blockMap.set(block.number, { transactions: transactions, blockHash: block.hash })
           transactionCount += transactions.length
         } catch (error) {
           logger.info(error)
@@ -144,19 +145,18 @@ export async function getBlockTransactionsMapAsync (startBlock: number, endBlock
   logger.info(`getBlockTransactionsMapAsync - total transactions ${transactionCount} in block #${startBlock} to block #${endBlock}.`)
   return blockMap
 }
-
 // get one block
-export async function getSingleBlockTransactionsAsync (blockNumber: number): Promise<any>  {
-  logger.info(`getSingleBlockTransactionsAsync blockNumber ${blockNumber}.`)    
+export async function getSingleBlockTransactionsAsync (blockNumber: number): Promise<any> {
+  logger.info(`getSingleBlockTransactionsAsync blockNumber ${blockNumber}.`)
   try {
     // fetch full block, include transactions
     let resBlock = await web3.eth.getBlock(blockNumber, true)
     let transactions = await getTransactionsFromBlockAsync(resBlock)
     return transactions
-    } catch (error) {
-      logger.error(`getSingleBlockTransactionsAsync fail for block ${blockNumber}`)
-      logger.info(error)
-      return null
+  } catch (error) {
+    logger.error(`getSingleBlockTransactionsAsync fail for block ${blockNumber}`)
+    logger.info(error)
+    return null
   }
 }
 

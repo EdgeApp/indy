@@ -10,5 +10,4 @@ export class IndexerSettings {
   lastBlockNumber : number
   startBlockNumber : number
   endBlockNumber : number
-
 }

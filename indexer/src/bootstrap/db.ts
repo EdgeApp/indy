@@ -2,9 +2,7 @@ import * as consts from '../../../common/consts'
 
 import { configuration } from '../config/config'
 import { dbHandler } from '../utils/couchdb'
-import { async } from 'async'
 import * as logger from 'winston'
-
 
 export async function CreateDataBases () : Promise<void> {
   logger.info('creating databases')
@@ -52,54 +50,52 @@ async function initDB (DBName : string) {
 declare function emit(key: any, value: any): void;
 
 export async function addViewsAsync () : Promise<void> {
-
-  let dbViews = {}
-  dbViews[consts.toDoc] = 
-  {  
-    map: function(doc) {
+  let dbViews = { }
+  dbViews[consts.toDoc] =
+  {
+    map: function (doc) {
       if (doc.to) {
-        emit(doc.to, {_id: doc._id});
+        emit(doc.to, {_id: doc._id})
       }
     }
   }
-  dbViews[consts.fromDoc] =   
-  {  
-    map: function(doc) {
+  dbViews[consts.fromDoc] =
+  {
+    map: function (doc) {
       if (doc.from) {
-        emit(doc.from, {_id: doc._id});
+        emit(doc.from, {_id: doc._id})
       }
     }
-  }  
-  dbViews[consts.blockDoc] =   
-  {  
-    map: function(doc) {
+  }
+  dbViews[consts.blockDoc] =
+  {
+    map: function (doc) {
       if (doc.blockNumber) {
-        emit(doc.blockNumber, {_id: doc._id});
+        emit(doc.blockNumber, {_id: doc._id})
       }
     }
-  } 
-  // dbViews[consts.contract] =   
-  // {  
+  }
+  // dbViews[consts.contract] =
+  // {
   //   map: function(doc) {
   //     if (doc.contractAddress) {
   //       emit(doc.contractAddress, {_id: doc._id});
   //     }
   //   }
-  // }  
-  dbViews[consts.contract] =   
-  {  
-    map: function(doc) {
+  // }
+  dbViews[consts.contract] =
+  {
+    map: function (doc) {
       if (doc.contractAddress) {
-        emit([doc.from, doc.to, doc.contractAddress], {_id: doc._id});
+        emit([doc.from, doc.to, doc.contractAddress], {_id: doc._id})
       }
     }
-  }    
+  }
 
-  await addViewAsync(consts.toDoc ,dbViews[consts.toDoc])
-  await addViewAsync(consts.fromDoc,dbViews[consts.fromDoc])
-  await addViewAsync(consts.blockDoc,dbViews[consts.blockDoc])
-  await addViewAsync(consts.contract,dbViews[consts.contract])
-  
+  await addViewAsync(consts.toDoc, dbViews[consts.toDoc])
+  await addViewAsync(consts.fromDoc, dbViews[consts.fromDoc])
+  await addViewAsync(consts.blockDoc, dbViews[consts.blockDoc])
+  await addViewAsync(consts.contract, dbViews[consts.contract])
 }
 
 export async function addViewAsync (viewName:string, view: any) : Promise<void> {
@@ -108,8 +104,8 @@ export async function addViewAsync (viewName:string, view: any) : Promise<void> 
 
   let ddoc = {
     language: 'javascript',
-    views: { [consts.fixedViewName] : view}
-  };
+    views: {[consts.fixedViewName]: view}
+  }
 
   return new Promise<void>((resolve, reject) => {
     db.get(designDocName, function (error, existing) {
@@ -127,6 +123,6 @@ export async function addViewAsync (viewName:string, view: any) : Promise<void> 
           }
         })
       }
-    }) 
+    })
   })
 }

@@ -21,7 +21,7 @@ router.get('/txs/:address?', async (req, res, next) => {
   let status = 0
   let message = `error fetching block # ${block}`
   let count = 0
-  
+
   if (block) {
     try {
       result = await blockUtils.getTransactions(block, address)
@@ -29,12 +29,12 @@ router.get('/txs/:address?', async (req, res, next) => {
       message = 'OK'
       status = 1
     } catch (error) {
-      message = 'FAIL'   
-      result = null  
+      message = 'FAIL'
+      result = null
       logger.info(error)
     }
-  } 
-   
+  }
+
   return res.json(
     {
       'status': status,

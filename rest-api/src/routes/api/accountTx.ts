@@ -13,25 +13,25 @@ const router = express.Router()
 router.get('/:address/:limit?', async (req, res, next) => {
   try {
     let highestBlock = await web3.eth.getBlock('pending')
-    let highestBlockNumber = highestBlock.number  
+    let highestBlockNumber = highestBlock.number
 
     let limit = req.params.limit ? req.params.limit : 50
-    let resultTo = await dbUtils.getAccountToTransactionsAsync(req.params.address, req.params.limit)
+    let resultTo = await dbUtils.getAccountToTransactionsAsync(req.params.address, limit)
     resultTo.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)
-    
-    let resultFrom = await dbUtils.getAccountFromTransactionsAsync(req.params.address, req.params.limit)
-    resultFrom.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)    
+
+    let resultFrom = await dbUtils.getAccountFromTransactionsAsync(req.params.address, limit)
+    resultFrom.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)
 
     let reqRes = await request({
       uri: 'indexer/liveBlocks/' + req.params.address,
       baseUrl: 'http://127.0.0.1:3001/',
       json: true
-    })    
+    })
 
     let result = resultTo.concat(resultFrom)
 
-    if(reqRes.status === '1') {
-      reqRes.result.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)    
+    if (reqRes.status === '1') {
+      reqRes.result.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)
       result = result.concat(reqRes.result)
     }
 

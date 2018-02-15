@@ -10,10 +10,10 @@ import { SortedMap } from 'collections/sorted-map'
 const Web3 = require('web3')
 
 // call to handle all indexing
-export class IndexerTransactions{
-  constructor() {
+export class IndexerTransactions {
+  constructor () {
     this.web3 = new Web3()
-    this.web3.setProvider(configuration.provider)  
+    this.web3.setProvider(configuration.provider)
     this.transactionCount = 0
   }
 
@@ -26,7 +26,7 @@ export class IndexerTransactions{
   async startIndexerProcess () {
     logger.info('startIndexerProcess')
   
-    var totalStartTime = process.hrtime();
+    var totalStartTime = process.hrtime()
     // function init, try to read the indexer settings from DB
     try {
       this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
@@ -70,15 +70,15 @@ export class IndexerTransactions{
         if(this.indexSetttings.endBlockNumber > highestBlockNumber)
           this.indexSetttings.endBlockNumber = highestBlockNumber
 
-        let startTime = process.hrtime();
+        let startTime = process.hrtime()
         await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber) 
-        let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime));
+        let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
         logger.info(`startIndexerProcess method, ${this.indexSetttings.endBlockNumber - this.indexSetttings.startBlockNumber} blocks, duration in sec: ${elapsedSeconds}`)                
         logger.info(`startIndexerProcess, indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
 
       } while(this.indexSetttings.endBlockNumber < highestBlockNumber)
       logger.info(`startIndexerProcess finished index history to ,highestBlock: ${highestBlockNumber}`)
-      var totalElapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime));
+      var totalElapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime))
       logger.info(`startIndexerProcess history finished, duration in sec: ${totalElapsedSeconds}`)      
       
     } catch (error) {
@@ -99,9 +99,9 @@ export class IndexerTransactions{
         let start = startBlock
         let end = ((startBlock + configuration.BlockStep) <= endBlock) ? startBlock + configuration.BlockStep : endBlock
       
-        var startTime = process.hrtime();
+        var startTime = process.hrtime()
         await this.indexBlockRangeTransactions(start, end)
-        var elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime));
+        var elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
         logger.info(`startIndex method, ${configuration.BlockStep} blocks, duration in sec: ${elapsedSeconds}`)
         
         startBlock += configuration.BlockStep
@@ -182,7 +182,7 @@ export class IndexerTransactions{
       throw(new Error('startLiveIndexerProcess gap is too much, check what went wrong and restart the history indexing'))
     }
 
-    var startMapTime = process.hrtime();
+    var startMapTime = process.hrtime()
     
     logger.info(`init startLiveIndexerProcess, fetch all blocks, from ${lastSavedBlock} to ${highestBlock.number}`)
     this.liveBlocksTransactionsMap = await blockchainUtils.getBlockTransactionsMapAsync(lastSavedBlock, highestBlock.number)    
@@ -191,7 +191,7 @@ export class IndexerTransactions{
     logger.info(`init startLiveIndexerProcess blockchainUtils.getBlockTransactionsMapAsync sec: ${elapsedMapSeconds}`)      
     
     while(true) {
-      var startTime = process.hrtime();
+      var startTime = process.hrtime()
 
       logger.info(`************************************************`)
       logger.info(`************* live blocks loop *****************`)
@@ -286,10 +286,10 @@ export class IndexerTransactions{
     logger.info(`saveAndRemoveHistoryBlocks highestBlock ${highestBlock.number}`)
     logger.info(`saveAndRemoveHistoryBlocks liveTransactionsMap.length ${this.liveBlocksTransactionsMap.length}`)
     // make sure transactions map contain no more than MaxEphemeralForkBlocks (12)
-    while(this.liveBlocksTransactionsMap.length > configuration.MaxEphemeralForkBlocks) {
+    while (this.liveBlocksTransactionsMap.length > configuration.MaxEphemeralForkBlocks) {
       try {
         let entry = this.liveBlocksTransactionsMap.get(blockNumber)
-        if(entry) {
+        if (entry) {
           logger.info(`saveAndRemoveHistoryBlocks save and remove block ${blockNumber}`)
           await this.saveTransactions(entry.transactions)
           this.liveBlocksTransactionsMap.delete(blockNumber)
@@ -304,5 +304,5 @@ export class IndexerTransactions{
     }
     logger.info(`saveAndRemoveHistoryBlocks lastSave ${lastSave}`)
     return lastSave
-  }  
+  }
 }

@@ -8,5 +8,3 @@ export const toDoc = 'toDoc'
 export const fromDoc = 'fromDoc'
 export const blockDoc = 'blockDoc'
 export const contract = 'contract'
-
-
