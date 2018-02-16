@@ -1,6 +1,6 @@
 import * as express from 'express'
 import * as logger from 'winston'
-import * as dbUtils from '../../utils/dbUtils'
+import * as dbViewUtils from '../../../../common/dbViewUtils'
 import { configuration } from '../../config/config'
 
 const router = express.Router()
@@ -14,7 +14,7 @@ router.get('/:address/:contractAddress', async (req, res, next) => {
     let highestBlockNumber = highestBlock.number
 
     let limit = req.params.limit ? req.params.limit : 50
-    let result = await dbUtils.getAccountContractTransactionsAsync(req.params.address, req.params.contractAddress, limit)
+    let result = await dbViewUtils.getAccountContractTransactionsAsync(req.params.address, req.params.contractAddress, limit)
     result.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)
 
     return res.json(

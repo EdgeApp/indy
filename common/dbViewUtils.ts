@@ -1,12 +1,14 @@
 import * as logger from 'winston'
-import { dbHandler } from '../utils/couchdb'
-import { configuration } from '../config/config'
-import * as consts from '../../../common/consts'
+import * as consts from './consts'
 
-var historyDb = dbHandler.use(configuration.DBName)
+var historyDb
 
-export async function getAccountContractTransactionsAsync (accountFrom: string, contractAddress: string, limitTransactions: number = 10) : Promise<Array<any>> {
-  return getAccountTransactionsByContractAsync(consts.contract, consts.fixedViewName, accountFrom, contractAddress, limitTransactions)
+export function setHitoryDb (historyDbInstance: string) : void {
+  historyDb = historyDbInstance
+}
+
+export async function getAccountContractTransactionsAsync (from: string, contractAddress: string, limitTransactions: number = 10) : Promise<Array<any>> {
+  return getAccountTransactionsByContractAsync(consts.contractDoc, consts.fixedViewName, from, contractAddress, limitTransactions)
 }
 
 export async function getAccountBlockTransactionsAsync (account: string, limitTransactions: number = 10) : Promise<Array<any>> {
@@ -42,9 +44,9 @@ export async function getAccountTransactionsAsync (doc: string, view: string, ac
   })
 }
 
-export async function getAccountTransactionsByContractAsync (doc: string, view: string, account: string, contractAddress: string, limitTransactions: number = 10) : Promise<Array<any>> {
+export async function getAccountTransactionsByContractAsync (doc: string, view: string, from: string, contractAddress: string, limitTransactions: number = 10) : Promise<Array<any>> {
   return new Promise<Array<any>>(async (resolve, reject) => {
-    historyDb.view(doc, view, {key: [account, null, contractAddress], include_docs: true, limit: limitTransactions}, function (err, body) {
+    historyDb.view(doc, view, {key: [from, contractAddress], include_docs: true, limit: limitTransactions}, function (err, body) {
       if (!err) {
         let result = []
         body.rows.forEach(function (row) {
@@ -53,11 +55,11 @@ export async function getAccountTransactionsByContractAsync (doc: string, view: 
           result.push(row.doc)
           logger.info(row.doc)
         })
-        logger.info(`getAccountTransactionsAsync result count: ${result.length}`)
+        logger.info(`getAccountTransactionsByContractAsync result count: ${result.length}`)
         resolve(result)
       } else {
         logger.info(err)
-        reject(new Error(`Error getAccountTransactionsAsync ${account}`))
+        reject(new Error(`Error getAccountTransactionsByContractAsync ${contractAddress}`))
       }
     })
   })

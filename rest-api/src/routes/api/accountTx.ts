@@ -1,8 +1,9 @@
 import * as request from 'request-promise'
 import * as express from 'express'
 import * as logger from 'winston'
-import * as dbUtils from '../../utils/dbUtils'
+import * as dbViewUtils from '../../../../common/dbViewUtils'
 import { configuration } from '../../config/config'
+
 
 const Web3 = require('web3')
 const web3 = new Web3()
@@ -16,10 +17,10 @@ router.get('/:address/:limit?', async (req, res, next) => {
     let highestBlockNumber = highestBlock.number
 
     let limit = req.params.limit ? req.params.limit : 50
-    let resultTo = await dbUtils.getAccountToTransactionsAsync(req.params.address, limit)
+    let resultTo = await dbViewUtils.getAccountToTransactionsAsync(req.params.address, limit)
     resultTo.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)
 
-    let resultFrom = await dbUtils.getAccountFromTransactionsAsync(req.params.address, limit)
+    let resultFrom = await dbViewUtils.getAccountFromTransactionsAsync(req.params.address, limit)
     resultFrom.forEach((transaction) => transaction.confirmations = highestBlockNumber - transaction.blockNumber)
 
     let reqRes = await request({
