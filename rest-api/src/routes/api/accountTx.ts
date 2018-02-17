@@ -4,7 +4,6 @@ import * as logger from 'winston'
 import * as dbViewUtils from '../../../../common/dbViewUtils'
 import { configuration } from '../../config/config'
 
-
 const Web3 = require('web3')
 const web3 = new Web3()
 web3.setProvider(configuration.provider)

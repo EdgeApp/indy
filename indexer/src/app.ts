@@ -3,6 +3,7 @@ import * as logging from './bootstrap/logging'
 import * as logger from 'winston'
 import * as applicationRoutes from './bootstrap/routes'
 import * as db from './bootstrap/db'
+import * as yargs from 'yargs'
 import { configuration } from './config/config'
 import { IndexerTransactions } from './indexer/indexerTransactions'
 
@@ -10,9 +11,11 @@ let app = express()
 logging.load(app)
 
 process.on('uncaughtException', function (err) {
-  logger.info('error', 'Caught exception: ' + err)
-  logger.info('error', err.stack)
+  logger.error('Caught exception: ' + err)
+  logger.error(err.stack)
 })
+
+configuration.readCommandLineArgs(yargs.argv)
 
 applicationRoutes.load(app)
 

@@ -1,5 +1,4 @@
 import * as express from 'express'
-import * as logger from 'winston'
 import * as dbViewUtils from '../../../../common/dbViewUtils'
 import { configuration } from '../../config/config'
 

@@ -1,6 +1,5 @@
 import * as logger from 'winston'
 import * as utils from '../utils/utils'
-import * as consts from '../../../common/consts'
 import * as dbViewUtils from '../../../common/dbViewUtils'
 import { Transaction } from '../../../common/models/transaction'
 import { dbHandler } from '../utils/couchdb'
@@ -84,5 +83,8 @@ export async function refreshViews (account: string) {
   dbViewUtils.getAccountBlockTransactionsAsync(account)
   dbViewUtils.getAccountFromTransactionsAsync(account)
   dbViewUtils.getAccountToTransactionsAsync(account)
-}
 
+  logger.info('****************')
+  logger.info('**Finished refreshViews**')
+  logger.info('****************')
+}

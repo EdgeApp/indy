@@ -34,7 +34,7 @@ export async function getAccountTransactionsAsync (doc: string, view: string, ac
           result.push(row.doc)
           logger.info(row.doc)
         })
-        logger.info(`getAccountTransactionsAsync result count: ${result.length}`)
+        logger.info(`getAccountTransactionsAsync result count: ${result.length} for address ${account}`)
         resolve(result)
       } else {
         logger.info(err)
@@ -55,7 +55,7 @@ export async function getAccountTransactionsByContractAsync (doc: string, view: 
           result.push(row.doc)
           logger.info(row.doc)
         })
-        logger.info(`getAccountTransactionsByContractAsync result count: ${result.length}`)
+        logger.info(`getAccountTransactionsByContractAsync result count: ${result.length} for ${contractAddress}`)
         resolve(result)
       } else {
         logger.info(err)

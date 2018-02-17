@@ -4,7 +4,7 @@ import { configuration } from '../config/config'
 import { dbHandler } from '../utils/couchdb'
 import * as logger from 'winston'
 
-const historyDb = dbHandler.use(configuration.HistoryDBName)  
+const historyDb = dbHandler.use(configuration.HistoryDBName)
 
 export async function CreateDataBases () : Promise<void> {
   logger.info('creating databases')
@@ -13,7 +13,6 @@ export async function CreateDataBases () : Promise<void> {
   await initSettingsDB()
   
   dbViewUtils.setHitoryDb(historyDb)
-
   await addViewsAsync()
 }
 
@@ -53,8 +52,7 @@ async function initDB (DBName : string) {
 
  // decalre emit so ts will compile
  //declare function emit(key: any, value: any): void
- declare function emit(key: any): void
-
+declare function emit(key: any): void
 
 export async function addViewsAsync () : Promise<void> {
   let dbViews = { }
