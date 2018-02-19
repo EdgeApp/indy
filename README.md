@@ -134,9 +134,9 @@ If indexer module is not available, then the last 12 live blocks are not include
             value: "0",
             gas: 1700000,
             gasPrice: "20000000000",
-            input: "0x60606040525b60008054600160a060020a03191633600160a060020a03161790555b5b611
+            input: "0x60606040525b60008054600160a060020a03191633600160a060020a0316179055
             [.. ..]
-            fffffffffffff1916600160a060020a0383161790555b5b505600a165627a7a723058204a5afd9abee5fcbfbdf2bd336ca2044",
+            fffffffffffff1916600160a060020a0383161790555b5b505600a165627a7a723058204a5af",
             isError: 0,
             gasUsed: 1647192,
             cumulativeGasUsed: 1882081,
@@ -145,3 +145,123 @@ If indexer module is not available, then the last 12 live blocks are not include
     ]
 }
 ```
+
+---
+
+# Getting Started
+
+### Install nodejs (v 9.0+) and npm (v 5.3+)
+    https://nodejs.org/en/download/
+
+### Install Parity 
+``` 
+bash <(curl https://get.parity.io -Lk) -r stable 
+```
+
+### Install Couchdb
+Install couchdb. Make sure to create admin user on installation.
+
+```
+echo "deb https://apache.bintray.com/couchdb-deb xenial main" \
+    | sudo tee -a /etc/apt/sources.list
+```
+The "xenial" parameter is for ubuntu. For non ubuntu read more here:
+http://docs.couchdb.org/en/2.0.0/install/unix.html
+
+### Run Parity
+Make sure to fully sync Parity before start indexing. Also, no-warp is important to get full history.
+```
+parity --no-warp --cache-size 2048
+```
+
+
+### Clone git
+```
+git clone https://github.com/adyshimony/ether-super-node.git
+```
+### Run NPM install
+```
+npm install
+```
+
+### Build project
+```
+npm run build
+```
+
+# Configuration
+---
+There are two ways to configure.
+Change the values in the config files and build, or pass parameters in command line.
+
+## Config file
+---
+
+### Config file for Indexer
+`indexer/src/config`
+### Config file for REST
+`rest-api/src/config/config.ts`
+
+In Config class constructor, change default values if needed, for Indexer and REST
+```
+    this._provider = new web3.providers.HttpProvider('http://127.0.0.1:8545')
+    this._port = 3000 
+    this._useIpc = true
+    this._DBUrl = 'http://admin:123456@localhost:5984'  
+```
+#### Make sure to build after config files change.
+```
+npm run build
+```
+
+# Runing 
+Both indexer and REST must run to get history and live data.
+## run indexer
+`npm run start-indexer`
+
+## run rest
+`npm run start-rest`
+
+## Command line options
+---
+Run `npm run start-indexer` -- --paremeter
+Where 'parameter' can be one or more of the following:
+
+#### DB Url
+```
+dbUrl='http://admin:123456@localhost:5984'
+```
+CouchDB URL with user:password. 
+
+#### Port
+```
+port=XXXX
+```
+Port for incoming http requests. 
+
+#### Use Ipc
+```
+useipc=true (default) 
+```
+Set this flag to false if you want to conenct to parity with HTTP provider and not with inter-process communication. Ipc is much faster, but must be on the same machine. 
+
+#### Http provider
+```
+httpprovider='http://127.0.0.1:8545' (default)
+```
+Parity http provider.
+
+### Example
+```
+npm run start-indexer -- --dbUrl='http://admin:123456@localhost:5984' --port=3000
+npm run start-rest -- --dbUrl='http://admin:123456@localhost:5984' --port=3001
+
+```
+Make sure for the pre double hyphen before the parameters, npm requires it for passing the paremeters to the running script.
+
+
+
+
+
+
+
