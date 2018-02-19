@@ -50,6 +50,11 @@ Returns an array of unconfirmed (pending) transactions in the format below. If a
 
 GET /account/{address}/[limit]/[skip]
 
+GET /from/{address}/[limit]/[skip]
+
+GET /to/{address}/[limit]/[skip]
+
+
 Parameters:	
 
 - address – mandatory account address.
