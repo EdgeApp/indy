@@ -53,7 +53,7 @@ GET /account/{address}/[limit]/[skip]
 Parameters:	
 
 - address – mandatory account address.
-- limit – limit result count. Ranage is 50 (default) to 1000.
+- limit – max result count. Range is 50 (default) to 1000.
 - skip - query skips the speficied value.
 
 Returns an array of pending and history transactions in the format below. 
@@ -100,7 +100,7 @@ Parameters:
 
 - address – mandatory account address.
 - contractAddress – mandatory contract address.
-- limit – limit result count. Ranage is 50 (default) to 1000.
+- limit – max result count. Range is 50 (default) to 1000.
 - skip - query skips the speficied value.
 
 
