@@ -1,10 +1,11 @@
 # Ethereum Super Node
 
-Ethereum Super Node is a an Ethereum blockchain Indexer and REST API server,built with NodeJS, Express and Parity. The current DB implementation uses CouchDB. 
+Ethereum Super Node is a an Ethereum blockchain Indexer and REST API server, built with NodeJS, Express and Parity. The current DB implementation uses CouchDB. 
 
-The indexer is running on the same machine as the Partity, creating a d database of transactional data. The data can then be queried using a REST API.
+The indexer is running on the same machine as the Partity, creating a database of transactional data. The data can then be queried using a REST API.
 
 ### REST API
+
 #### Pending transactions
 
 GET /mempool/txs/[address]
@@ -55,7 +56,8 @@ Parameters:
 - limit – limit result count. Ranage is 50 (default) to 1000.
 - skip - query skips the speficied value.
 
-Returns an array of pending and history transactions in the format below. Limit can be speficied. The 12 Live blocks are first priority. Pagination is availble with skip value.
+Returns an array of pending and history transactions in the format below. 
+Limit can be speficied. The 12 Live blocks are first priority. Pagination is availble with skip value.
 If indexer module is not available, then the last 12 live blocks are not included. 
 
 ```
@@ -103,7 +105,8 @@ Parameters:
 
 
 
-Returns an array of pending and history contract transactions in the format below. Limit can be speficied, range is 50-1000. The 12 Live blocks are first priority. 
+Returns an array of pending and history contract transactions in the format below.
+Limit can be speficied, range is 50-1000. The 12 Live blocks are first priority. 
 Pagination is availble with skip value.
 If indexer module is not available, then the last 12 live blocks are not included. 
 
