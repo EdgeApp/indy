@@ -190,12 +190,10 @@ npm run build
 ```
 
 # Configuration
----
 There are two ways to configure.
 Change the values in the config files and build, or pass parameters in command line.
 
 ## Config file
----
 
 ### Config file for Indexer
 `indexer/src/config`
@@ -223,7 +221,6 @@ Both indexer and REST must run to get history and live data.
 `npm run start-rest`
 
 ## Command line options
----
 Run `npm run start-indexer` -- --paremeter
 Where 'parameter' can be one or more of the following:
 
