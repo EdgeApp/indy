@@ -196,7 +196,7 @@ Change the values in the config files and build, or pass parameters in command l
 ## Config file
 
 ### Config file for Indexer
-`indexer/src/config`
+`indexer/src/config/config.ts`
 ### Config file for REST
 `rest-api/src/config/config.ts`
 
