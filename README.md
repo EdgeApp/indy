@@ -121,6 +121,7 @@ If indexer module is not available, then the last 12 live blocks are not include
 {
     status: 1,
     message: "OK",
+    includeLiveBlocks: true,
     count: 1
     result: [
         {
