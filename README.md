@@ -50,21 +50,20 @@ Returns an array of unconfirmed (pending) transactions in the format below. If a
 
 #### Account transactions
 
-###### GET /account/{address}/[limit]/[skip]
+###### GET /account/{address}/[limit]
 
-###### GET /from/{address}/[limit]/[skip]
+###### GET /from/{address}/[limit]
 
-###### GET /to/{address}/[limit]/[skip]
+###### GET /to/{address}/[limit]
 
 
 Parameters:	
 
 - address – mandatory account address.
-- limit – max result count. Range is 50 (default) to 1000.
-- skip - query skips the speficied value.
+- limit – max result count. Range is 50 (default) to 10000.
 
-Returns an array of pending and history transactions in the format below. 
-Limit can be speficied. The 12 Live blocks are first priority. Pagination is availble with skip value.
+Returns an array of pending and history transactions that have a from or to address that match address, in the format below.
+Limit can be speficied. The 12 Live blocks are first priority, second are 'from' and last are 'to'.
 If indexer module is not available, then the last 12 live blocks are not included. 
 
 ```
@@ -101,20 +100,18 @@ If indexer module is not available, then the last 12 live blocks are not include
 
 #### Contract transactions
 
-###### GET /tokes/{address}/{contractAddress}/[limit]/[skip]
+###### GET /tokes/{address}/{contractAddress}/[limit]
 
 Parameters:	
 
 - address – mandatory account address.
 - contractAddress – mandatory contract address.
-- limit – max result count. Range is 50 (default) to 1000.
-- skip - query skips the speficied value.
+- limit – max result count. Range is 50 (default) to 10000.
 
 
 
 Returns an array of pending and history contract transactions in the format below.
-Limit can be speficied, range is 50-1000. The 12 Live blocks are first priority. 
-Pagination is availble with skip value.
+Limit can be speficied, range is 50-1000. The 12 Live blocks are first priority.
 If indexer module is not available, then the last 12 live blocks are not included. 
 
 ```
