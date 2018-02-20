@@ -24,7 +24,7 @@ export async function getAccountToTransactionsAsync (account: string, limitTrans
 }
 
 export async function getAccountTransactionsAsync (doc: string, view: string, account: string, limitTransactions: number = 10) : Promise<Array<any>> {
-  return new Promise<Array<any>>(async (resolve, reject) => {
+  let promise =  new Promise<Array<any>>(async (resolve, reject) => {
     historyDb.view(doc, view, {keys: [account], include_docs: true, limit: limitTransactions}, function (err, body) {
       if (!err) {
         let result = []
@@ -37,15 +37,20 @@ export async function getAccountTransactionsAsync (doc: string, view: string, ac
         logger.info(`getAccountTransactionsAsync result count: ${result.length} for address ${account}`)
         resolve(result)
       } else {
-        logger.info(err)
-        reject(new Error(`Error getAccountTransactionsAsync ${account}`))
+        //logger.error(err)
+        reject(new Error(`Error reject getAccountTransactionsAsync ${account}`))
       }
     })
   })
+  promise.catch((error) => {
+    logger.error(`Error getAccountTransactionsAsync ${account}`)
+  })
+  return promise  
 }
 
 export async function getAccountTransactionsByContractAsync (doc: string, view: string, from: string, contractAddress: string, limitTransactions: number = 10) : Promise<Array<any>> {
-  return new Promise<Array<any>>(async (resolve, reject) => {
+  
+  let promise = new Promise<Array<any>>(async (resolve, reject) => {
     historyDb.view(doc, view, {key: [from, contractAddress], include_docs: true, limit: limitTransactions}, function (err, body) {
       if (!err) {
         let result = []
@@ -58,9 +63,13 @@ export async function getAccountTransactionsByContractAsync (doc: string, view: 
         logger.info(`getAccountTransactionsByContractAsync result count: ${result.length} for ${contractAddress}`)
         resolve(result)
       } else {
-        logger.info(err)
+        //logger.error(err)
         reject(new Error(`Error getAccountTransactionsByContractAsync ${contractAddress}`))
       }
     })
   })
+  promise.catch((error) => {
+    logger.error(`Error getAccountTransactionsByContractAsync ${contractAddress}`)
+  })
+  return promise
 }
