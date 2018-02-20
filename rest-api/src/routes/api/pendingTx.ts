@@ -10,7 +10,6 @@ const web3 = new Web3()
 
 web3.setProvider(configuration.provider)
 
-// temporary implementation - will be taken from cache db
 router.get('/txs/:address?', async (req, res, next) => {
   let address = req.params.address
 

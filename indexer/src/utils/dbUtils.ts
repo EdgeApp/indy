@@ -75,16 +75,22 @@ export async function saveIndexerSettingsAsync (settings: any) : Promise<void> {
 // call this function to make the views index the data and keep them updated.
 export async function refreshViews (account: string) {
   // do not wait for the functions, let them work async
-  logger.info('****************')
-  logger.info('**refreshViews**')
-  logger.info('****************')
+  logger.info('********************************')
+  logger.info('**       refreshViews         **')
+  logger.info('**   Ignore timeout errors    **')
+  logger.info('********************************')
 
-  dbViewUtils.getAccountContractTransactionsAsync(account, 'dummy contract address')
-  dbViewUtils.getAccountBlockTransactionsAsync(account)
-  dbViewUtils.getAccountFromTransactionsAsync(account)
-  dbViewUtils.getAccountToTransactionsAsync(account)
+  dbViewUtils.getAccountContractTransactionsAsync(account, 'refreshDummyContract').catch((error) => {
+    logger.error(`Timeout getAccountContractTransactionsAsync for refresh view, index in process, ignore ${'refreshDummyContract'}`)
+  })
 
-  logger.info('****************')
-  logger.info('**Finished refreshViews**')
-  logger.info('****************')
+  dbViewUtils.getAccountBlockTransactionsAsync(account).catch((error) => {
+    logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
+  })
+  dbViewUtils.getAccountFromTransactionsAsync(account).catch((error) => {
+    logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
+  })
+  dbViewUtils.getAccountToTransactionsAsync(account).catch((error) => {
+    logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
+  })
 }

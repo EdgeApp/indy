@@ -15,6 +15,12 @@ function setApplicationRoutes (app) {
   let accountTxContoller = require('../routes/api/accountTx')
   app.use('/account', accountTxContoller)
 
+  let fromTxContoller = require('../routes/api/accountTx')
+  app.use('/from', fromTxContoller) 
+  
+  let toTxContoller = require('../routes/api/accountTx')
+  app.use('/to', fromTxContoller)    
+
   let tokenTxContoller = require('../routes/api/tokenTx')
   app.use('/tokens', tokenTxContoller)
 }
