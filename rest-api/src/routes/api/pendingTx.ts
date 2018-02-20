@@ -25,6 +25,9 @@ router.get('/txs/:address?', async (req, res, next) => {
   if (block) {
     try {
       result = await blockUtils.getTransactions(block, address)
+      result.forEach((transaction) => { 
+        delete transaction._id     
+      })      
       count = result.length
       message = 'OK'
       status = 1
