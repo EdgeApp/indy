@@ -21,8 +21,9 @@ applicationRoutes.load(app)
 
 let indexerTransactions = new IndexerTransactions()
 
+
 db.CreateDataBases().then(async () => {
-  await indexerTransactions.startIndexerProcess()
+  await indexerTransactions.startIndexerProcess(yargs.argv.startBlock, yargs.argv.endBlock)
   //await indexerTransactions.startLiveIndexerProcess()
 })
 

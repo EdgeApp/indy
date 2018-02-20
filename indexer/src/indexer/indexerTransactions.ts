@@ -23,7 +23,7 @@ export class IndexerTransactions {
   liveBlocksTransactionsMap: SortedMap<number, { transactions: Transaction[], blockHash :string }>
 
   // start procees, do first block range, then take next availble range
-  async startIndexerProcess () {
+  async startIndexerProcess (startBlock: number, endBlock: number) {
     logger.info('startIndexerProcess')
     var totalStartTime = process.hrtime()
     // function init, try to read the indexer settings from DB
@@ -108,7 +108,7 @@ export class IndexerTransactions {
         await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
       }
       // make sure to trigger views indexing. do not wait for this call, let it run on the backgound
-      dbUtils.refreshViews('dummyaccount')
+      dbUtils.refreshViews('refreshDummyAccount')         
     } catch (error) {
       logger.log('error', `startIndex error in blocks ${startBlock} - ${endBlock}, abort!`)
       logger.log('error', error)
