@@ -226,7 +226,7 @@ Where 'parameter' can be one or more of the following:
 
 #### DB Url
 ```
-dbUrl='http://admin:123456@localhost:5984'
+dburl='http://admin:123456@localhost:5984'
 ```
 CouchDB URL with user:password. 
 
@@ -236,9 +236,9 @@ port=XXXX
 ```
 Port for incoming http requests. 
 
-#### Use Ipc
+#### Ipc
 ```
-useipc=true (default) 
+ipc=true (default) 
 ```
 Set this flag to false if you want to conenct to parity with HTTP provider and not with inter-process communication. Ipc is much faster, but must be on the same machine. 
 
@@ -250,8 +250,8 @@ Parity http provider.
 
 ### Example
 ```
-npm run start-indexer -- --dbUrl='http://admin:123456@localhost:5984' --port=3000
-npm run start-rest -- --dbUrl='http://admin:123456@localhost:5984' --port=3001
+npm run start-indexer -- --dburl='http://admin:123456@localhost:5984' --port=3000
+npm run start-rest -- --dburl='http://admin:123456@localhost:5984' --port=3001
 
 ```
 Make sure for the pre double hyphen before the parameters, npm requires it for passing the paremeters to the running script.
