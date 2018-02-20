@@ -212,7 +212,7 @@ In Config class constructor, change default values if needed, for Indexer and RE
 npm run build
 ```
 
-# Runing 
+# Running 
 Both indexer and REST must run to get history and live data.
 ## Run indexer
 `npm run start-indexer`
