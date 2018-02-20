@@ -107,7 +107,8 @@ export class IndexerTransactions {
         this.indexSetttings.lastBlockNumber = end
         await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
       }
-      // make sure to trigger views indexing. do not wait for this call, let it run on the backgound
+      // make sure to trigger views indexing every 10,000 blocks - only on history indexing.
+      // do not wait for this call, let it run at the backgound. Ignore timeouts.
       dbUtils.refreshViews('refreshDummyAccount')         
     } catch (error) {
       logger.log('error', `startIndex error in blocks ${startBlock} - ${endBlock}, abort!`)
@@ -163,6 +164,7 @@ export class IndexerTransactions {
     let lastSavedBlock = this.indexSetttings.lastBlockNumber
     let lastHighestBlockNumber = this.indexSetttings.lastBlockNumber
     let highestBlock = await this.web3.eth.getBlock('pending')
+    let lastRefreshViewBlock = lastSavedBlock
     // debug patch
     //let lastHighestBlockNumber = highestBlock.number - 3
     //let lastSavedBlock = highestBlock.number - 30
@@ -220,6 +222,12 @@ export class IndexerTransactions {
 
       await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
 
+      if(lastSavedBlock - lastRefreshViewBlock > 100) {
+        // make sure to trigger views indexing every 1000 blocks
+        // do not wait for this call, let it run at the backgound. Ignore timeouts.
+        dbUtils.refreshViews('refreshLiveDummyAccount')  
+        lastRefreshViewBlock = lastSavedBlock
+      }
       logger.info(`invoke again in :${nextFetch} sec`)
       await utils.timeout(nextFetch)
     }
@@ -274,7 +282,6 @@ export class IndexerTransactions {
   private async saveAndRemoveHistoryBlocks (highestBlock: any): Promise<number> {
     let blockNumber = highestBlock.number - configuration.MaxEphemeralForkBlocks
     let lastSave = blockNumber
-
     logger.info(`saveAndRemoveHistoryBlocks highestBlock ${highestBlock.number}`)
     logger.info(`saveAndRemoveHistoryBlocks liveTransactionsMap.length ${this.liveBlocksTransactionsMap.length}`)
     // make sure transactions map contain no more than MaxEphemeralForkBlocks (12)

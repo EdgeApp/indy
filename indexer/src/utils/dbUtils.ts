@@ -21,9 +21,10 @@ export async function saveTransactionsBulkAsync (transactions: Array<Transaction
             rejectedTransactions.push(body[index].id)
           }
         }
-        logger.info(JSON.stringify(rejectedTransactions))
-        logger.info(`#${rejectedTransactions.length} rejectedTransactions, already exists.`)
-
+        if(rejectedTransactions.length) {
+          logger.info(JSON.stringify(rejectedTransactions))
+          logger.info(`${rejectedTransactions.length} rejectedTransactions, already exists in DB.`)
+        }
         let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime))
         logger.info(`saveTransactionsBulkAsync ${transactions.length} transactions, duration in sec: ${elapsedSeconds}`)
         resolve()
