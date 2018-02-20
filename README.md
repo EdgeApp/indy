@@ -8,7 +8,7 @@ The indexer is running on the same machine as the Partity, creating a database o
 
 #### Pending transactions
 
-GET /mempool/txs/[address]
+###### GET /mempool/txs/[address]
 
 Parameters:	
 - address – optional account address.
@@ -48,11 +48,11 @@ Returns an array of unconfirmed (pending) transactions in the format below. If a
 
 #### Account transactions
 
-GET /account/{address}/[limit]/[skip]
+###### GET /account/{address}/[limit]/[skip]
 
-GET /from/{address}/[limit]/[skip]
+###### GET /from/{address}/[limit]/[skip]
 
-GET /to/{address}/[limit]/[skip]
+###### GET /to/{address}/[limit]/[skip]
 
 
 Parameters:	
@@ -99,7 +99,7 @@ If indexer module is not available, then the last 12 live blocks are not include
 
 #### Contract transactions
 
-GET /tokes/{address}/{contractAddress}/[limit]/[skip]
+###### GET /tokes/{address}/{contractAddress}/[limit]/[skip]
 
 Parameters:	
 
