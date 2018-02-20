@@ -28,19 +28,19 @@ export class Config {
         logger.info(`configure port from command line: ${args.port}`)
       }
 
-      if (args.useIpc !== undefined) {
-        this._useIpc = args.useIpc
-        logger.info(`configure useIpc from command line: ${args.useIpc}`)
+      if (args.ipc !== undefined) {
+        this._useIpc = args.ipc
+        logger.info(`configure useIpc from command line: ${args.ipc}`)
       }
 
-      if (args.httpProvider) {
-        this._provider = new web3.providers.HttpProvider(args.httpProvider)
-        logger.info(`configure httpProvider from command line: ${args.httpProvider}`)
+      if (args.httpprovider) {
+        this._provider = new web3.providers.HttpProvider(args.httpprovider)
+        logger.info(`configure httpProvider from command line: ${args.httpprovider}`)
       }
 
-      if (args.DBUrl) {
-        this._DBUrl = args.DBUrl
-        logger.info(`configure DBUrl from command line: ${args.DBUrl}`)
+      if (args.dburl) {
+        this._DBUrl = args.dburl
+        logger.info(`configure DBUrl from command line: ${args.dburl}`)
       }
       logger.info(`config readCommandLineArgs end`)
     } catch (error) {
