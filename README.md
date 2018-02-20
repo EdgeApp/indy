@@ -214,14 +214,14 @@ npm run build
 
 # Runing 
 Both indexer and REST must run to get history and live data.
-## run indexer
+## Run indexer
 `npm run start-indexer`
 
-## run rest
+## Run rest
 `npm run start-rest`
 
 ## Command line options
-Run `npm run start-indexer` -- --paremeter
+Run `npm run start-indexer -- --paremeter`
 Where 'parameter' can be one or more of the following:
 
 #### DB Url
