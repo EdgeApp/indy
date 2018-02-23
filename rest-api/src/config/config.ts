@@ -10,6 +10,8 @@ export class Config {
   _useIpc: boolean
   _DBUrl: string
   _port : number
+  _indexerPort : number
+  _indexerUrl : string
 
   constructor () {
     this._ipcPath = process.env['HOME'] + '/.local/share/io.parity.ethereum/jsonrpc.ipc'
@@ -18,6 +20,8 @@ export class Config {
     this._port = 3000
     this._useIpc = true
     this._DBUrl = 'http://admin:123456@localhost:5984'
+    this._indexerPort = 3001
+    this._indexerUrl = 'http://127.0.0.1' + ':' + this._indexerPort
   }
 
   readCommandLineArgs (args: yargs.Arguments) : void {
@@ -57,6 +61,7 @@ export class Config {
   get DBUrl (): string { return this._DBUrl }
   get Port (): number { return this._port }
   get LogFileName (): string { return 'supernode-rest.log' }
+  get MaxEphemeralForkBlocks (): number { return 12 }
 }
 
 export const configuration = new Config()

@@ -27,19 +27,14 @@ router.get('/liveBlocks/:address/:fromto', async (req, res, next) => {
     let resTransactions = []
     liveTransactions.forEach(function (value, key, mapObj) {
       if (filterAddress) {
-        logger.info(`filterAddress not null`)
-
         if(isAll || isFrom) {
           let fromTransactions = value.transactions.filter((t) => t.from === filterAddress)
           resTransactions = resTransactions.concat(fromTransactions)
         }
         if(isAll || isTo) {
-          let toTransactions = value.transactions.filter((t) => t.to === filterAddress)
+          let toTransactions = value.transactions.filter((t) => (t.to === filterAddress || t.contractAddress == filterAddress))
           resTransactions = resTransactions.concat(toTransactions)
         }
-      } else { // TODO, remove this
-        logger.info(`filterAddress IS null, fetch all, for debug only, need to remove this`)
-        resTransactions = resTransactions.concat(value.transactions)
       }
     })
 
