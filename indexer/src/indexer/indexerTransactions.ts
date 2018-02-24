@@ -130,8 +130,7 @@ export class IndexerTransactions {
         logger.info(`indexHistory method, ${this.indexSetttings.endBlock - this.indexSetttings.startBlock} blocks, duration in sec: ${elapsedSeconds}`);
         
         // advance to the next block chunk
-        this.indexSetttings.startBlock += configuration.BlockChunkSize
-        this.indexSetttings.lastBlock += configuration.BlockChunkSize
+        this.indexSetttings.startBlock = this.indexSetttings.endBlock
         this.indexSetttings.endBlock += configuration.BlockChunkSize
         logger.info(`indexHistory, indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
 
@@ -144,7 +143,7 @@ export class IndexerTransactions {
         if (this.indexSetttings.endBlock > highestBlockNumberToIndex) {
           logger.info(`last indexHistory loop, endBlockNumber > highestBlockNumberToIndex. highestBlockNumberToIndex:  ${highestBlockNumberToIndex}`)
           this.indexSetttings.endBlock = highestBlockNumberToIndex
-          await this.startIndex(this.indexSetttings.startBlock, this.indexSetttings.endBlock)
+          await this.startIndex(this.indexSetttings.lastBlock, this.indexSetttings.endBlock)
           done = true  
         }
         // TODO - make sure to handle lastBlockToIndex limitation - currently we can take more, when advancing in BlockChunkSize

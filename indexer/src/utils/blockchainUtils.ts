@@ -72,9 +72,10 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
     if (block && block.transactions) {
       //logger.info(`block #${block.number}, transactions count ${block.transactions.length}.`)
       // fetch receipt and construct Array<Transactsion>
+      let resTransactions = []
       await retry(async fetch => {
         // if anything throws, we retry
-        let resTransactions = await convertTransactionFormatAsync(block, block.transactions) 
+        resTransactions = await convertTransactionFormatAsync(block, block.transactions) 
         if (!resTransactions) {
           logger.error(`getTransactionsFromBlockAsync error fetch block #${block.number}, missing block`)
           throw(new Error(`getTransactionsFromBlockAsync error fetch block #${block.number}, missing block`))
@@ -83,7 +84,8 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
       }, {
         retries: 50,
         maxTimeout: 5000
-      }) 
+      })
+      return resTransactions
     } 
   } catch (error) {
     dbUtils.saveDropsInfoAsync(new DropInfo(block, 'getTransactionsFromBlockAsync error fetch'))             
