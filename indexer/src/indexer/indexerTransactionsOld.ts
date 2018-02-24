@@ -29,21 +29,21 @@ export class IndexerTransactions {
     // function init, try to read the indexer settings from DB
     try {
       this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
-      logger.info(`startIndexerProcess, index setting exist, start index from ${this.indexSetttings.lastBlockNumber} to ${this.indexSetttings.endBlockNumber}`)
+      logger.info(`startIndexerProcess, index setting exist, start index from ${this.indexSetttings.lastBlock} to ${this.indexSetttings.endBlock}`)
       // start chunk index
-      await this.startIndex(this.indexSetttings.lastBlockNumber, this.indexSetttings.endBlockNumber)
+      await this.startIndex(this.indexSetttings.lastBlock, this.indexSetttings.endBlock)
     } catch (error) {
       // error - first chunk, no settings in db yet, first time indexing
       if (!this.indexSetttings) {
         this.indexSetttings = new IndexerSettings()
         logger.info(`startIndexerProcess, first chunk, block # 0 to block # ${configuration.BlockChunkSize}`)
-        this.indexSetttings.startBlockNumber = 45000 // no transactions before this block, we can index from here
-        this.indexSetttings.lastBlockNumber = 45000
-        this.indexSetttings.endBlockNumber = 45000 + configuration.BlockChunkSize
+        this.indexSetttings.startBlock = 45000 // no transactions before this block, we can index from here
+        this.indexSetttings.lastBlock = 45000
+        this.indexSetttings.endBlock = 45000 + configuration.BlockChunkSize
         await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
-        logger.info(`startIndexerProcess, index setting created, first start index from ${this.indexSetttings.lastBlockNumber} to ${this.indexSetttings.endBlockNumber}`)
+        logger.info(`startIndexerProcess, index setting created, first start index from ${this.indexSetttings.lastBlock} to ${this.indexSetttings.endBlock}`)
         // start first time chunk index
-        await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber)
+        await this.startIndex(this.indexSetttings.startBlock, this.indexSetttings.endBlock)
       } else {
         logger.info(`startIndexerProcess error:, ${error}`)
         throw error
@@ -61,18 +61,18 @@ export class IndexerTransactions {
         //highestBlockNumber = 4050000 // temp patch for tests
         logger.info(`startIndexerProcess, highstBlock: ${highestBlockNumber}`)
 
-        this.indexSetttings.startBlockNumber = this.indexSetttings.endBlockNumber + 1
-        this.indexSetttings.lastBlockNumber = this.indexSetttings.startBlockNumber
-        this.indexSetttings.endBlockNumber += configuration.BlockChunkSize
-        if (this.indexSetttings.endBlockNumber > highestBlockNumber) {
-          this.indexSetttings.endBlockNumber = highestBlockNumber
+        this.indexSetttings.startBlock = this.indexSetttings.endBlock + 1
+        this.indexSetttings.lastBlock = this.indexSetttings.startBlock
+        this.indexSetttings.endBlock += configuration.BlockChunkSize
+        if (this.indexSetttings.endBlock > highestBlockNumber) {
+          this.indexSetttings.endBlock = highestBlockNumber
         }
         let startTime = process.hrtime()
-        await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber)
+        await this.startIndex(this.indexSetttings.startBlock, this.indexSetttings.endBlock)
         let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
-        logger.info(`startIndexerProcess method, ${this.indexSetttings.endBlockNumber - this.indexSetttings.startBlockNumber} blocks, duration in sec: ${elapsedSeconds}`)
+        logger.info(`startIndexerProcess method, ${this.indexSetttings.endBlock - this.indexSetttings.startBlock} blocks, duration in sec: ${elapsedSeconds}`)
         logger.info(`startIndexerProcess, indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
-      } while (this.indexSetttings.endBlockNumber < highestBlockNumber)
+      } while (this.indexSetttings.endBlock < highestBlockNumber)
       logger.info(`startIndexerProcess finished index history to ,highestBlock: ${highestBlockNumber}`)
       var totalElapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime))
       logger.info(`startIndexerProcess history finished, duration in sec: ${totalElapsedSeconds}`)
@@ -104,7 +104,7 @@ export class IndexerTransactions {
           startBlock = endBlock
         }
 
-        this.indexSetttings.lastBlockNumber = end
+        this.indexSetttings.lastBlock = end
         await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
       }
       // make sure to trigger views indexing every 10,000 blocks - only on history indexing.
@@ -161,8 +161,8 @@ export class IndexerTransactions {
   // save older blocks
   async startLiveIndexerProcess () {
     this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
-    let lastSavedBlock = this.indexSetttings.lastBlockNumber
-    let lastHighestBlockNumber = this.indexSetttings.lastBlockNumber
+    let lastSavedBlock = this.indexSetttings.lastBlock
+    let lastHighestBlockNumber = this.indexSetttings.lastBlock
     let highestBlock = await this.web3.eth.getBlock('pending')
     let lastRefreshViewBlock = lastSavedBlock
     // debug patch
@@ -213,9 +213,9 @@ export class IndexerTransactions {
       let nextFetch = (15 - elapsedSeconds) * 1000
 
       logger.info(`live update indexSetttings`)
-      this.indexSetttings.lastBlockNumber = lastSavedBlock
-      this.indexSetttings.startBlockNumber = lastSavedBlock
-      this.indexSetttings.endBlockNumber = lastSavedBlock
+      this.indexSetttings.lastBlock = lastSavedBlock
+      this.indexSetttings.startBlock = lastSavedBlock
+      this.indexSetttings.endBlock = lastSavedBlock
 
       logger.info(`live lastSavedBlock ${lastSavedBlock}`)
       logger.info(`live highestBlock.number ${highestBlock.number}`)

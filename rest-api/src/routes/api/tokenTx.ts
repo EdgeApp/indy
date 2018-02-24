@@ -20,8 +20,8 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
     let endBlock = req.params.endBlock != undefined ?parseInt(req.params.endBlock) : undefined
     // check start and end block validity
     if (startBlock > endBlock ||
-      startBlock < 0 || 
-      endBlock > highestBlockNumber) {
+        startBlock < 0 || 
+        endBlock > highestBlockNumber) {
       throw( new Error(`Error in blocks parameters, startBlock: ${startBlock}, endBlock: ${endBlock}`))
     }    
     // calc the limit
@@ -31,7 +31,8 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
 
     // first, check if we can include the live block.
     // then take the live transactions (12 blocks) from indexer. user the baseurl to fetch account, from or to requests.
-    if (endBlock == undefined || (endBlock && (endBlock >= highestBlockNumber - configuration.MaxEphemeralForkBlocks))) {
+    if (endBlock == undefined || 
+       (endBlock && (endBlock >= highestBlockNumber - configuration.MaxEphemeralForkBlocks))) {
       try {
         reqRes = await request({
           uri: 'indexer/liveBlocks/' + req.params.address + '/account',
@@ -48,6 +49,7 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
 
     // if live didn't fill the limit, lets take more 
     let leftLimit = limit - result.length
+    // take all the contracts transactions that are FROM the account
     if (leftLimit > 0) {
       // performe get contract query, limit results with "leftLimit"
       let fromResult = await dbViewUtils.getAccountFromTransactionsAsync(req.params.address, leftLimit)
@@ -55,6 +57,7 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
       filterByBlocksAndLimit(startBlock, endBlock, fromResult, leftLimit, result, highestBlockNumber, req.params.contractAddress)
     }
 
+    // take all the contracts transactions that are TO the account    
     if (leftLimit > 0) {
       // performe get contract query, limit results with "leftLimit"
       let toResult = await dbViewUtils.getAccountToTransactionsAsync(req.params.address, leftLimit)

@@ -18,72 +18,145 @@ export class IndexerTransactions {
   }
 
   web3: any
+  // save the last index and the current range
   indexSetttings : IndexerSettings
+  // for printing only 
   transactionCount : number
+  // save the live blocks before saving them to history
   liveBlocksTransactionsMap: SortedMap<number, { transactions: Transaction[], blockHash :string }>
-
   // start procees, do first block range, then take next availble range
   async startIndexerProcess (startBlock: number, endBlock: number) {
     logger.info('startIndexerProcess')
-    var totalStartTime = process.hrtime()
+    let totalStartTime = process.hrtime()
     // function init, try to read the indexer settings from DB
+    await this.initIndexSetttings(startBlock, endBlock)
+    // index full history
+    await this.indexHistory()
+    let totalElapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime))
+    logger.info('******************************************************************************')
+    logger.info('**    startIndexerProcess history finished, start startLiveIndexerProcess    **')
+    logger.info(`**    duration in sec: ${totalElapsedSeconds}                                **`)
+    logger.info('******************************************************************************')
+    // start indexing live blocks
+    if (!this.indexSetttings.lastBlockToIndex) {
+      await this.startLiveIndexerProcess()
+    }
+  }
+
+  private async initIndexSetttings(startBlock: number, lastBlockToIndex: number) : Promise<void> {
+    logger.info('initIndexSetttings')
     try {
       this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
-      logger.info(`startIndexerProcess, index setting exist, start index from ${this.indexSetttings.lastBlockNumber} to ${this.indexSetttings.endBlockNumber}`)
-      // start chunk index
-      await this.startIndex(this.indexSetttings.lastBlockNumber, this.indexSetttings.endBlockNumber)
-    } catch (error) {
+      if(startBlock != undefined) {
+        logger.info(`initIndexSetttings parameters from command line, startBlock: ${startBlock}, lastBlockToIndex: ${lastBlockToIndex} `)        
+        this.indexSetttings.startBlock = startBlock
+        this.indexSetttings.lastBlock = startBlock
+        this.indexSetttings.endBlock += configuration.BlockChunkSize
+        // check if chcuk is not out of range 
+        let highestBlock = await this.web3.eth.getBlock('pending')
+        let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
+        if (this.indexSetttings.endBlock > highestBlockNumberToIndex) {
+          this.indexSetttings.endBlock = highestBlockNumberToIndex
+        } 
+        // check if chcuk is not out of range 
+        if(lastBlockToIndex != undefined && lastBlockToIndex > highestBlockNumberToIndex) {
+          this.indexSetttings.lastBlockToIndex = highestBlockNumberToIndex
+        }
+        // check if index setttings has valid values
+        await this.validateIndexSettings()      
+        await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)        
+      } else {
+        logger.info(`initIndexSetttings parameters from db`)        
+        if(this.indexSetttings.lastBlock ===  this.indexSetttings.endBlock) {
+          logger.info(`initIndexSetttings parameters from db lastBlockNumber ==  endBlockNumber, we need to advance the endblock`)        
+          this.indexSetttings.endBlock += configuration.BlockChunkSize
+          let highestBlock = await this.web3.eth.getBlock('pending')
+          let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
+          // check if chcuk is not out of range when approaching live blocks
+          if (this.indexSetttings.endBlock > highestBlockNumberToIndex) {
+            this.indexSetttings.endBlock = highestBlockNumberToIndex
+          }        
+        }
+        await this.validateIndexSettings()            
+      } 
+    }
+    catch (error) {
       // error - first chunk, no settings in db yet, first time indexing
       if (!this.indexSetttings) {
         this.indexSetttings = new IndexerSettings()
-        logger.info(`startIndexerProcess, first chunk, block # 0 to block # ${configuration.BlockChunkSize}`)
-        this.indexSetttings.startBlockNumber = 45000 // no transactions before this block, we can index from here
-        this.indexSetttings.lastBlockNumber = 45000
-        this.indexSetttings.endBlockNumber = 45000 + configuration.BlockChunkSize
+        logger.info(`IndexerTransactions init, first chunk, block # 45000 to block # ${configuration.BlockChunkSize}`)
+        this.indexSetttings.startBlock = 45000 // no transactions before this block, we can index from here
+        this.indexSetttings.lastBlock = 45000
+        this.indexSetttings.endBlock = 45000 + configuration.BlockChunkSize
         await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
-        logger.info(`startIndexerProcess, index setting created, first start index from ${this.indexSetttings.lastBlockNumber} to ${this.indexSetttings.endBlockNumber}`)
-        // start first time chunk index
-        await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber)
-      } else {
-        logger.info(`startIndexerProcess error:, ${error}`)
-        throw error
+        logger.info(`IndexerTransactions init, index setting created, first start index from ${this.indexSetttings.lastBlock} to ${this.indexSetttings.endBlock}`)
+      }
+      else {
+        logger.error(`init error:, ${error}`)
+        throw error;
       }
     }
+  }  
 
-    let highestBlock : any
-    let highestBlockNumber : number
+  private async validateIndexSettings() : Promise<void> {
+    let highestBlock = await this.web3.eth.getBlock('pending')
+    let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks    
+    if (this.indexSetttings.startBlock >= this.indexSetttings.endBlock ||
+        this.indexSetttings.lastBlock > this.indexSetttings.endBlock ||   
+        this.indexSetttings.endBlock >= highestBlockNumberToIndex ||           
+        this.indexSetttings.startBlock < 0 ||
+        this.indexSetttings.endBlock < 0 ||
+        this.indexSetttings.lastBlock < 0) {
+          logger.error(`validateIndexSettings failed`)
+          throw (new Error('validateIndexSettings - error, abort!'))
+    }
+    logger.info(`validateIndexSettings OK`)
+  }  
 
+  private async indexHistory() : Promise<void>  {
+    let highestBlock = await this.web3.eth.getBlock('pending');
+    let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
+    logger.info(`indexHistory start, highestBlockNumber: ${highestBlockNumberToIndex}`)
+    
+    let done = false
     // for all history blocks, up to the live MaxEphemeralForkBlocks blocks - index in chunks
     try {
-      do {
-        highestBlock = await this.web3.eth.getBlock('pending')
-        highestBlockNumber = highestBlock.number - configuration.MaxEphemeralForkBlocks
-        //highestBlockNumber = 4050000 // temp patch for tests
-        logger.info(`startIndexerProcess, highstBlock: ${highestBlockNumber}`)
-
-        this.indexSetttings.startBlockNumber = this.indexSetttings.endBlockNumber + 1
-        this.indexSetttings.lastBlockNumber = this.indexSetttings.startBlockNumber
-        this.indexSetttings.endBlockNumber += configuration.BlockChunkSize
-        if (this.indexSetttings.endBlockNumber > highestBlockNumber) {
-          this.indexSetttings.endBlockNumber = highestBlockNumber
-        }
+      while ((!done && this.indexSetttings.endBlock < highestBlockNumberToIndex) ||
+        (this.indexSetttings.lastBlockToIndex && this.indexSetttings.endBlock < this.indexSetttings.lastBlockToIndex)) {
         let startTime = process.hrtime()
-        await this.startIndex(this.indexSetttings.startBlockNumber, this.indexSetttings.endBlockNumber)
+        // index block chunk 
+        await this.startIndex(this.indexSetttings.lastBlock, this.indexSetttings.endBlock)
         let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
-        logger.info(`startIndexerProcess method, ${this.indexSetttings.endBlockNumber - this.indexSetttings.startBlockNumber} blocks, duration in sec: ${elapsedSeconds}`)
-        logger.info(`startIndexerProcess, indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
-      } while (this.indexSetttings.endBlockNumber < highestBlockNumber)
-      logger.info(`startIndexerProcess finished index history to ,highestBlock: ${highestBlockNumber}`)
-      var totalElapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime))
-      logger.info(`startIndexerProcess history finished, duration in sec: ${totalElapsedSeconds}`)
-    } catch (error) {
-      logger.info(`startIndexerProcess error:, ${error}`)
-      throw error
+        logger.info(`indexHistory method, ${this.indexSetttings.endBlock - this.indexSetttings.startBlock} blocks, duration in sec: ${elapsedSeconds}`);
+        
+        // advance to the next block chunk
+        this.indexSetttings.startBlock += configuration.BlockChunkSize
+        this.indexSetttings.lastBlock += configuration.BlockChunkSize
+        this.indexSetttings.endBlock += configuration.BlockChunkSize
+        logger.info(`indexHistory, indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
+
+        highestBlock = await this.web3.eth.getBlock('pending')
+        highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
+        //highestBlockNumber = 4050000 // temp patch for tests
+        logger.info(`indexHistory loop, highestBlockNumber: ${highestBlockNumberToIndex}`)
+
+        // check if chcuk is not out of range when approaching live blocks
+        if (this.indexSetttings.endBlock > highestBlockNumberToIndex) {
+          logger.info(`last indexHistory loop, endBlockNumber > highestBlockNumberToIndex. highestBlockNumberToIndex:  ${highestBlockNumberToIndex}`)
+          this.indexSetttings.endBlock = highestBlockNumberToIndex
+          await this.startIndex(this.indexSetttings.startBlock, this.indexSetttings.endBlock)
+          done = true  
+        }
+        // TODO - make sure to handle lastBlockToIndex limitation - currently we can take more, when advancing in BlockChunkSize
+      }
+      logger.info('*****************************************************************************************************************')
+      logger.info(`************ startIndexerProcess finished index history to ,highestBlock: ${highestBlockNumberToIndex} **********`);
+      logger.info('*****************************************************************************************************************')
     }
-    logger.info('******************************************************************************')
-    logger.info('**    startIndexerProcess history finished, satrt startLiveIndexerProcess    **')
-    logger.info('******************************************************************************')
-    await this.startLiveIndexerProcess()
+    catch (error) {
+      logger.error(`indexHistory error:, ${error}`);
+      throw error;
+    }
   }
 
   // take care of the current range, fetch #BlockStep blocks and save
@@ -94,9 +167,9 @@ export class IndexerTransactions {
         let start = startBlock
         let end = ((startBlock + configuration.BlockStep) <= endBlock) ? startBlock + configuration.BlockStep : endBlock
 
-        var startTime = process.hrtime()
+        let startTime = process.hrtime()
         await this.indexBlockRangeTransactions(start, end)
-        var elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
+        let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
         logger.info(`startIndex method, ${configuration.BlockStep} blocks, duration in sec: ${elapsedSeconds}`)
 
         startBlock += configuration.BlockStep
@@ -104,15 +177,15 @@ export class IndexerTransactions {
           startBlock = endBlock
         }
 
-        this.indexSetttings.lastBlockNumber = end
+        this.indexSetttings.lastBlock = end
         await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
       }
       // make sure to trigger views indexing every 10,000 blocks - only on history indexing.
       // do not wait for this call, let it run at the backgound. Ignore timeouts.
       dbUtils.refreshViews('refreshDummyAccount')         
     } catch (error) {
-      logger.log('error', `startIndex error in blocks ${startBlock} - ${endBlock}, abort!`)
-      logger.log('error', error)
+      logger.error(`startIndex error in blocks ${startBlock} - ${endBlock}, abort!`)
+      logger.error(error)
       throw (new Error('startIndex - error, abort!'))
     }
   }
@@ -130,8 +203,8 @@ export class IndexerTransactions {
       logger.info(`indexBlockRangeTransactions, total transactions so far in this run ${this.transactionCount}.`)
       await this.saveTransactions(transactions)
     } catch (error) {
-      logger.log('error', `indexBlockRangeTransactions error in blocks ${startBlock} - ${endBlock}, abort`)
-      logger.log('error', error)
+      logger.error(`indexBlockRangeTransactions error in blocks ${startBlock} - ${endBlock}, abort`)
+      logger.error( error)
       throw (new Error('indexBlockRangeTransactions - error, abort!'))
     }
   }
@@ -150,8 +223,8 @@ export class IndexerTransactions {
         }
       }
     } catch (error) {
-      logger.log('error', `saveTransactions error, abort`)
-      logger.log('error', error)
+      logger.error(`saveTransactions error, abort`)
+      logger.error(error)
       throw (new Error('saveTransactions - error, abort'))
     }
   }
@@ -159,10 +232,10 @@ export class IndexerTransactions {
   // method to index incoming blocks
   // always save 12 live blocks to avoid indexing reorg blocks
   // save older blocks
-  async startLiveIndexerProcess () {
+  async startLiveIndexerProcess () : Promise<void> {
     this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
-    let lastSavedBlock = this.indexSetttings.lastBlockNumber
-    let lastHighestBlockNumber = this.indexSetttings.lastBlockNumber
+    let lastSavedBlock = this.indexSetttings.lastBlock
+    let lastHighestBlockNumber = this.indexSetttings.lastBlock
     let highestBlock = await this.web3.eth.getBlock('pending')
     let lastRefreshViewBlock = lastSavedBlock
     // debug patch
@@ -179,7 +252,7 @@ export class IndexerTransactions {
       throw (new Error('startLiveIndexerProcess gap is too much, check what went wrong and restart the history indexing'))
     }
 
-    var startMapTime = process.hrtime()
+    let startMapTime = process.hrtime()
 
     logger.info(`init startLiveIndexerProcess, fetch all blocks, from ${lastSavedBlock} to ${highestBlock.number}`)
     this.liveBlocksTransactionsMap = await blockchainUtils.getBlockTransactionsMapAsync(lastSavedBlock, highestBlock.number)
@@ -188,7 +261,7 @@ export class IndexerTransactions {
     logger.info(`init startLiveIndexerProcess blockchainUtils.getBlockTransactionsMapAsync sec: ${elapsedMapSeconds}`)
 
     while (true) {
-      var startTime = process.hrtime()
+      let startTime = process.hrtime()
 
       logger.info(`************************************************`)
       logger.info(`************* live blocks loop *****************`)
@@ -213,9 +286,9 @@ export class IndexerTransactions {
       let nextFetch = (15 - elapsedSeconds) * 1000
 
       logger.info(`live update indexSetttings`)
-      this.indexSetttings.lastBlockNumber = lastSavedBlock
-      this.indexSetttings.startBlockNumber = lastSavedBlock
-      this.indexSetttings.endBlockNumber = lastSavedBlock
+      this.indexSetttings.lastBlock = lastSavedBlock
+      this.indexSetttings.startBlock = lastSavedBlock
+      this.indexSetttings.endBlock = lastHighestBlockNumber
 
       logger.info(`live lastSavedBlock ${lastSavedBlock}`)
       logger.info(`live highestBlock.number ${highestBlock.number}`)
@@ -236,7 +309,7 @@ export class IndexerTransactions {
   // update the map to hold the last 12 update blocks
   // fetch block headers
   // for every block , check hash, if change, bring block again
-  private async updateLiveBlocks (highestBlock: any) {
+  private async updateLiveBlocks (highestBlock: any) : Promise<void> {
     logger.info(`live updateLiveBlocks highestBlock.number ${highestBlock.number}`)
 
     let changedBlocks = []

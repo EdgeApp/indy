@@ -1,7 +1,12 @@
 import * as logger from 'winston'
+import * as retry from 'async-retry'
+import * as dbUtils from '../utils/dbUtils'
+import * as utils from '../utils/utils'
 import { configuration } from '../config/config'
 import { Transaction } from '../../../common/models/transaction'
 import { SortedMap } from 'collections/sorted-map'
+import { DropInfo } from '../../../common/models/dropInfo';
+
 
 const Web3 = require('web3')
 const web3 = new Web3()
@@ -19,6 +24,7 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
     while (startIndex < endBlock) {
       let blocksPromises = []
       let index
+      let startTime = process.hrtime()
       // fetch all blocks async, limited to BlockReqeusts configuration
       for (index = 0; index < configuration.BlockReqeusts && startIndex < endBlock; index++) {
         // fetch full block, include transactions
@@ -27,8 +33,10 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
       logger.info(`getBlockTransactionsAsync waiting for blocks #${startIndex - index} - #${startIndex - 1} requests`)
       // wait for blocks
       let resBlocks = await Promise.all(blocksPromises)
-      logger.info('getBlockTransactionsAsync got blocks')
+      let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))      
+      logger.info(`getBlockTransactionsAsync got blocks, duration in sec:, ${elapsedSeconds}`)
       // for every block, handle transactions
+      let startTimeTransactions = process.hrtime()
       for (let blockIndex = 0; blockIndex < resBlocks.length; blockIndex++) {
         let block = resBlocks[blockIndex]
         if (block) {
@@ -37,14 +45,17 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
             if (res) {
               transactions = transactions.concat(res)
             }
-              // TODO - save fail blocks to setttings DB
           } catch (error) {
+            // save fail blocks to setttings DB
+            let drop = new DropInfo(block, error.message)
+            dbUtils.saveDropsInfoAsync(drop)            
             logger.error(error)
             return null
           }
         }
       }
-      logger.info(`getBlockTransactionsAsync transactions for blocks #${startBlock} - #${startIndex - 1} : ${transactions.length}`)
+      let elapsedSecondsTransactions = utils.parseHrtimeToSeconds(process.hrtime(startTimeTransactions))      
+      logger.info(`getBlockTransactionsAsync tx for blocks #${startBlock} - #${startIndex - 1} : ${transactions.length}, duration in sec:, ${elapsedSecondsTransactions}`)
     }
   } catch (error) {
     logger.error(error)
@@ -61,27 +72,25 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
     if (block && block.transactions) {
       //logger.info(`block #${block.number}, transactions count ${block.transactions.length}.`)
       // fetch receipt and construct Array<Transactsion>
-      let resTransactions = await convertTransactionFormatAsync(block, block.transactions)
-      // handle RPC errors
-      // TODO - chage to work in time intervals
-      let limit = 0
-      while (!resTransactions && limit++ < 10) {
-        logger.error(`getTransactionsFromBlockAsync fail for block #${block.number}, resTransactions is null, fetching again, try #${limit}`)
-        resTransactions = await convertTransactionFormatAsync(block, block.transactions)
-        if (resTransactions) {
-          logger.info(`getTransactionsFromBlockAsync succsefuly feched block #${block.number}`)
-        } else {
+      await retry(async fetch => {
+        // if anything throws, we retry
+        let resTransactions = await convertTransactionFormatAsync(block, block.transactions) 
+        if (!resTransactions) {
           logger.error(`getTransactionsFromBlockAsync error fetch block #${block.number}, missing block`)
+          throw(new Error(`getTransactionsFromBlockAsync error fetch block #${block.number}, missing block`))
         }
-      }
-      // TODO - save fail blocks to setttings DB
-      return resTransactions
-    }
+        //logger.info(`getTransactionsFromBlockAsync succsefuly feched block #${block.number}`)
+      }, {
+        retries: 50,
+        maxTimeout: 5000
+      }) 
+    } 
   } catch (error) {
-    logger.error(error)
+    dbUtils.saveDropsInfoAsync(new DropInfo(block, 'getTransactionsFromBlockAsync error fetch'))             
+    logger.error(`getTransactionsFromBlockAsync error fetch block #${block.number}, missing block, saving to dropsDB`)
     return null
   }
-}
+} 
 
 // get more info on transactions, from the transaction receipt
 export async function convertTransactionFormatAsync (block: any, web3transactions: any[]): Promise<Array<Transaction>> {

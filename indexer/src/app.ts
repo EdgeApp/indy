@@ -23,7 +23,9 @@ let indexerTransactions = new IndexerTransactions()
 
 
 db.CreateDataBases().then(async () => {
-  await indexerTransactions.startIndexerProcess(yargs.argv.startBlock, yargs.argv.endBlock)
+  if(yargs.argv.start && yargs.argv.end)
+    logger.info(`Start block parameter ${yargs.argv.start}, end block parameter ${yargs.argv.end}`)  
+  await indexerTransactions.startIndexerProcess(yargs.argv.start, yargs.argv.end)
   //await indexerTransactions.startLiveIndexerProcess()
 })
 

@@ -54,7 +54,7 @@ export class Config {
   }
 
   get HistoryDBName (): string { return 'supernodedb' }
-  get CacheDBName (): string { return 'supernodecachedb' }
+  get DropsDBName (): string { return 'supernodedropsdb' }
   get SettingDBName (): string { return 'supernodesettingsdb' }
   get DBUrl (): string { return this._DBUrl }
   get Port (): number { return this._port }

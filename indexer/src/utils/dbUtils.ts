@@ -7,6 +7,7 @@ import { configuration } from '../config/config'
 
 const historyDb = dbHandler.use(configuration.HistoryDBName)
 const settingsDb = dbHandler.use(configuration.SettingDBName)
+const dropsDb = dbHandler.use(configuration.DropsDBName)
 
 // bulk transactions functions
 export async function saveTransactionsBulkAsync (transactions: Array<Transaction>) : Promise<void> {
@@ -81,10 +82,6 @@ export async function refreshViews (account: string) {
   logger.info('**   Ignore timeout errors    **')
   logger.info('********************************')
 
-  dbViewUtils.getAccountContractTransactionsAsync(account, 'refreshDummyContract').catch((error) => {
-    logger.error(`Timeout getAccountContractTransactionsAsync for refresh view, index in process, ignore ${'refreshDummyContract'}`)
-  })
-
   dbViewUtils.getAccountBlockTransactionsAsync(account).catch((error) => {
     logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
   })
@@ -93,5 +90,26 @@ export async function refreshViews (account: string) {
   })
   dbViewUtils.getAccountToTransactionsAsync(account).catch((error) => {
     logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
+  })
+}
+
+export async function saveDropsInfoAsync (dropInfo: any) : Promise<void> {
+  logger.info(`saving drops info  ${JSON.stringify(dropInfo)}`)
+  return new Promise<void>((resolve, reject) => {
+    dropsDb.get(dropInfo._id, function (error, existing) {
+      if (!error) {
+        logger.info(`info for drop : ${dropInfo._id} exist, updating revision`)
+        dropInfo._rev = existing._rev
+      }    
+      dropsDb.insert(dropInfo, dropInfo._id, function (error, response) {
+        if (!error) {
+          logger.info(`info for drop "${dropInfo.description}" inserted`)
+          resolve()
+        } else {
+          logger.error(`error creating drop info for : ${dropInfo.description}, ${error}`)
+          reject(new Error(`error creating drop info for : ${dropInfo.description}, ${error}`))
+        }
+      })
+    })
   })
 }

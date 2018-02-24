@@ -36,7 +36,8 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
     let reqRes
     // first, check if we can include the live block.
     // then take the live transactions (12 blocks) from indexer. user the baseurl to fetch account, from or to requests.
-    if (endBlock == undefined || (endBlock && (endBlock >= highestBlockNumber - configuration.MaxEphemeralForkBlocks))) {
+    if (endBlock == undefined || 
+       (endBlock && (endBlock >= highestBlockNumber - configuration.MaxEphemeralForkBlocks))) {
       try {
         reqRes = await request({
           uri: 'indexer/liveBlocks/' + req.params.address + req.baseUrl,

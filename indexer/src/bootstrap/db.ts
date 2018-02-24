@@ -9,7 +9,7 @@ const historyDb = dbHandler.use(configuration.HistoryDBName)
 export async function CreateDataBases () : Promise<void> {
   logger.info('creating databases')
   await initHistoryDB()
-  await initCacheDB()
+  await initDropsDB()
   await initSettingsDB()
   
   dbViewUtils.setHitoryDb(historyDb)
@@ -20,8 +20,8 @@ export async function initHistoryDB () : Promise<void> {
   await initDB(configuration.HistoryDBName)
 }
 
-export async function initCacheDB () : Promise<void> {
-  await initDB(configuration.CacheDBName)
+export async function initDropsDB () : Promise<void> {
+  await initDB(configuration.DropsDBName)
 }
 
 export async function initSettingsDB () : Promise<void> {
@@ -80,19 +80,20 @@ export async function addViewsAsync () : Promise<void> {
       }
     }
   }
-  dbViews[consts.contractDoc] =
-  {
-    map: function (doc) {
-      if (doc.contractAddress) {
-        emit([doc.from, doc.contractAddress])
-      }
-    }
-  }
+  // dbViews[consts.contractDoc] =
+  // {
+  //   map: function (doc) {
+  //     if (doc.contractAddress) {
+  //       emit([doc.from, doc.contractAddress])
+  //     }
+  //   }
+  // }
 
   await addViewAsync(consts.toDoc, dbViews[consts.toDoc])
   await addViewAsync(consts.fromDoc, dbViews[consts.fromDoc])
   await addViewAsync(consts.blockDoc, dbViews[consts.blockDoc])
-  await addViewAsync(consts.contractDoc, dbViews[consts.contractDoc])
+  // we don't need contract view anymore, but keep it for now
+  //await addViewAsync(consts.contractDoc, dbViews[consts.contractDoc])
 }
 
 export async function addViewAsync (viewName:string, view: any) : Promise<void> {
