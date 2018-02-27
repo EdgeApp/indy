@@ -1,7 +1,6 @@
 import * as request from 'request-promise'
 import * as express from 'express'
 import * as logger from 'winston'
-import * as consts from '../../../../common/consts'
 import * as dbViewUtils from '../../../../common/dbViewUtils'
 import { configuration } from '../../config/config'
 import { Transaction } from '../../../../common/models/transaction'
@@ -37,7 +36,7 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
     let reqRes
 
     // TODO test this to get the best performace
-    //let resultTo = await dbViewUtils.getAccountFromTransactionsBlockRangeAsync(req.params.address, startBlock, endBlock, limit)
+    //let resultFilterdBlocks = await dbViewUtils.getAccountFromTransactionsBlockRangeAsync(req.params.address, startBlock, endBlock, limit)
     
     // first, check if we can include the live block.
     // then take the live transactions (12 blocks) from indexer. user the baseurl to fetch account, from or to requests.
