@@ -37,11 +37,13 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
       logger.info(`getBlockTransactionsAsync got blocks, duration in sec:, ${elapsedSeconds}`)
       // for every block, handle transactions
       let startTimeTransactions = process.hrtime()
+      let transactionCount = 0
       for (let blockIndex = 0; blockIndex < resBlocks.length; blockIndex++) {
         let block = resBlocks[blockIndex]
         if (block) {
           try {
             let res = await getTransactionsFromBlockAsync(block)
+            transactionCount += res.length
             if (res) {
               transactions = transactions.concat(res)
             }
@@ -55,7 +57,7 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
         }
       }
       let elapsedSecondsTransactions = utils.parseHrtimeToSeconds(process.hrtime(startTimeTransactions))      
-      logger.info(`getBlockTransactionsAsync tx for blocks #${startBlock} - #${startIndex - 1} : ${transactions.length}, duration in sec:, ${elapsedSecondsTransactions}`)
+      logger.info(`getBlockTransactionsAsync tx for blocks #${startIndex - configuration.BlockReqeusts} - #${startIndex - 1} : ${transactionCount}, duration in sec:, ${elapsedSecondsTransactions}`)
     }
   } catch (error) {
     logger.error(error)
