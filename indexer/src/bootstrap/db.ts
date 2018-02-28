@@ -52,7 +52,7 @@ async function initDB (DBName : string) {
 
  // decalre emit so ts will compile
  //declare function emit(key: any, value: any): void
-declare function emit(key: any): void
+declare function emit(key: any, doc: any): void
 
 export async function addViewsAsync () : Promise<void> {
   let dbViews = { }
@@ -60,7 +60,7 @@ export async function addViewsAsync () : Promise<void> {
   {
     map: function (doc) {
       if (doc.to) {
-        emit(doc.to)
+        emit(doc.to, null)
       }
     }
   }
@@ -68,30 +68,34 @@ export async function addViewsAsync () : Promise<void> {
   {
     map: function (doc) {
       if (doc.from) {
-        emit(doc.from)
+        emit(doc.from, null)
       }
     }
   }
-  dbViews[consts.blockDoc] =
+  dbViews[consts.fromDocBlocks] =
   {
     map: function (doc) {
-      if (doc.blockNumber) {
-        emit(doc.blockNumber)
+      if (doc.from) {
+        emit([doc.from, doc.blockNumber], null)
       }
     }
   }
-  // dbViews[consts.contractDoc] =
-  // {
-  //   map: function (doc) {
-  //     if (doc.contractAddress) {
-  //       emit([doc.from, doc.contractAddress])
-  //     }
-  //   }
-  // }
+  dbViews[consts.toDocBlocks] =
+  {
+    map: function (doc) {
+      if (doc.to) {
+        emit([doc.to, doc.blockNumber], null)
+      }
+    }
+  }
 
   await addViewAsync(consts.toDoc, dbViews[consts.toDoc])
   await addViewAsync(consts.fromDoc, dbViews[consts.fromDoc])
-  await addViewAsync(consts.blockDoc, dbViews[consts.blockDoc])
+  await addViewAsync(consts.fromDocBlocks, dbViews[consts.fromDocBlocks])
+  await addViewAsync(consts.toDocBlocks, dbViews[consts.toDocBlocks])
+  
+  // we don't need blocks view anymore, but keep it for now  
+  //await addViewAsync(consts.blockDoc, dbViews[consts.blockDoc])
   // we don't need contract view anymore, but keep it for now
   //await addViewAsync(consts.contractDoc, dbViews[consts.contractDoc])
 }

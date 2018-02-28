@@ -1,5 +1,5 @@
 import * as logger from 'winston'
-import * as utils from '../utils/utils'
+import * as utils from '../../../common/utils'
 import * as dbViewUtils from '../../../common/dbViewUtils'
 import { Transaction } from '../../../common/models/transaction'
 import { dbHandler } from '../utils/couchdb'
@@ -82,15 +82,18 @@ export async function refreshViews (account: string) {
   logger.info('**   Ignore timeout errors    **')
   logger.info('********************************')
 
-  dbViewUtils.getAccountBlockTransactionsAsync(account).catch((error) => {
-    logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
-  })
-  dbViewUtils.getAccountFromTransactionsAsync(account).catch((error) => {
-    logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
-  })
-  dbViewUtils.getAccountToTransactionsAsync(account).catch((error) => {
-    logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
-  })
+  // dbViewUtils.getAccountFromTransactionsAsync(account).catch((error) => {
+  //   logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
+  // })
+  // dbViewUtils.getAccountToTransactionsAsync(account).catch((error) => {
+  //   logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
+  // })
+  // dbViewUtils.getAccountFromTransactionsBlockRangeAsync(account, 0, 99999999).catch((error) => {
+  //   logger.error(`Timeout getAccountFromTransactionsBlockRangeAsync for refresh view, index in process, ignore error ${account}`)
+  // })
+  // dbViewUtils.getAccountToTransactionsBlockRangeAsync(account, 0, 99999999).catch((error) => {
+  //   logger.error(`Timeout getAccountToTransactionsBlockRangeAsync for refresh view, index in process, ignore error ${account}`)
+  // })  
 }
 
 export async function saveDropsInfoAsync (dropInfo: any) : Promise<void> {

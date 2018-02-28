@@ -1,7 +1,7 @@
 import * as logger from 'winston'
 import * as retry from 'async-retry'
 import * as dbUtils from '../utils/dbUtils'
-import * as utils from '../utils/utils'
+import * as utils from '../../../common/utils'
 import { configuration } from '../config/config'
 import { Transaction } from '../../../common/models/transaction'
 import { SortedMap } from 'collections/sorted-map'

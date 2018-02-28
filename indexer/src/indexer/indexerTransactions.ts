@@ -1,7 +1,7 @@
 import * as logger from 'winston'
 import * as blockchainUtils from '../utils/blockchainUtils'
 import * as dbUtils from '../utils/dbUtils'
-import * as utils from '../utils/utils'
+import * as utils from '../../../common/utils'
 import { IndexerSettings } from '../indexer/indexerSettings'
 import { configuration } from '../config/config'
 import { Transaction } from '../../../common/models/transaction'

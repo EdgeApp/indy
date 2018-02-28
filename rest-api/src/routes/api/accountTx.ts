@@ -1,9 +1,11 @@
 import * as request from 'request-promise'
 import * as express from 'express'
 import * as logger from 'winston'
+import * as utils from '../../../../common/utils'
 import * as dbViewUtils from '../../../../common/dbViewUtils'
 import { configuration } from '../../config/config'
 import { Transaction } from '../../../../common/models/transaction'
+
 
 const Web3 = require('web3')
 const web3 = new Web3()
@@ -16,28 +18,27 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
     // highest block to calc confirmations
     let highestBlock = await web3.eth.getBlock('pending')
     let highestBlockNumber = highestBlock.number
+
+    // startBlock and endBlock parameters
+    let startBlock = req.params.startBlock != undefined ? parseInt(req.params.startBlock) : 0
+    let endBlock = req.params.endBlock != undefined ?parseInt(req.params.endBlock) : 999999999
+    // check start and end block validity
+    if (startBlock > endBlock ||
+      startBlock < 0) {
+      throw( new Error(`REST API - Error in blocks range, startBlock: ${startBlock}, endBlock: ${endBlock}`))
+    }
+    
+    // calc the limit
+    let limit = req.params.limit && req.params.limit >= 10 && req.params.limit <= 10000 ? req.params.limit : 10000    
+  
     // account is for all, also from and to are supported
     let isAccount = req.baseUrl == '/account'
     let isFrom = req.baseUrl == '/from' || isAccount
     let isTo = req.baseUrl == '/to' || isAccount 
-    // startBlock and endBlock parameters
-    let startBlock = req.params.startBlock != undefined ? parseInt(req.params.startBlock) : undefined
-    let endBlock = req.params.endBlock != undefined ?parseInt(req.params.endBlock) : undefined
-    // check start and end block validity
-    if (startBlock > endBlock ||
-      startBlock < 0 || 
-      endBlock > highestBlockNumber) {
-      throw( new Error(`Error in blocks parameters, startBlock: ${startBlock}, endBlock: ${endBlock}`))
-    }
-  
-    // calc the limit
-    let limit = req.params.limit && req.params.limit >= 10 && req.params.limit <= 10000 ? req.params.limit : 10000
+
     let result = []
     let reqRes
 
-    // TODO test this to get the best performace
-    //let resultFilterdBlocks = await dbViewUtils.getAccountFromTransactionsBlockRangeAsync(req.params.address, startBlock, endBlock, limit)
-    
     // first, check if we can include the live block.
     // then take the live transactions (12 blocks) from indexer. user the baseurl to fetch account, from or to requests.
     if (endBlock == undefined || 
@@ -50,26 +51,31 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
           timeout: 5000
         }) 
         // add the results to "result" array after filtering and limiting
-        filterByBlocksAndLimit(startBlock, endBlock, reqRes.result, limit, result, highestBlockNumber)
+        filterAndUpdateTransactionConfirmations(reqRes.result, startBlock, endBlock,  limit, result, highestBlockNumber)
       } catch (error) {
         logger.error('Error getting live blocks from indexer')
       }
     }
+
     // if live didn't fill the limit, lets take more 
     let leftLimit = limit - result.length
 
     if (isFrom && leftLimit > 0) {
       // performe "from" query, limit results with "leftLimit"
-      let resultFrom = await dbViewUtils.getAccountFromTransactionsAsync(req.params.address)
       // add the results to "result" array after filtering and limiting      
-      filterByBlocksAndLimit(startBlock, endBlock, resultFrom, leftLimit, result, highestBlockNumber)
+      //await filterFromByBlocksAndLimit(req.params.address, startBlock, endBlock, leftLimit, result, highestBlockNumber)
+
+      let resultFrom = await fetchFromAccountBlockRangeFromDB(req.params.address, startBlock, endBlock, leftLimit, highestBlockNumber)
+      result.concat(resultFrom)
     }
 
     if (isTo && leftLimit > 0) {
       // performe "to" query, limit results with "leftLimit"      
-      let resultTo = await dbViewUtils.getAccountToTransactionsAsync(req.params.address)
       // add the results to "result" array after filtering and limiting            
-      filterByBlocksAndLimit(startBlock, endBlock, resultTo, leftLimit, result, highestBlockNumber)
+      //await filterToByBlocksAndLimit(req.params.address, startBlock, endBlock, leftLimit, result, highestBlockNumber)
+
+      let resultTo = await fetchToAccountBlockRangeFromDB(req.params.address, startBlock, endBlock, leftLimit, highestBlockNumber)
+      result.concat(resultTo)
     }
 
     // sort results by block number
@@ -105,22 +111,67 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
 })
 
 
-function filterByBlocksAndLimit(startBlock: number, endBlock: number, resultFrom: Array<Transaction>, limit: number, result: Array<Transaction>, highestBlockNumber: number) {
-  let numInserterd = 0;
+// DB filter methods
+async function fetchFromAccountBlockRangeFromDB(address: string, startBlock: number, endBlock: number, limit: any, highestBlockNumber: number) {
+  let startTimeBlocks = process.hrtime()
+  let resultFilterdBlocks = await dbViewUtils.getAccountFromTransactionsBlockRangeAsync(address, startBlock, endBlock, limit)
+  updateTransactonConfirmations(resultFilterdBlocks, highestBlockNumber)   
+  let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
+  logger.info(`fetchFromAccountBlockRangeFromDB, elpased time in sec: ${totalElapsedSecondsBlocks}`)
+}
+
+async function fetchToAccountBlockRangeFromDB(address: string, startBlock: number, endBlock: number, limit: any, highestBlockNumber: number) {
+  let startTimeBlocks = process.hrtime()
+  let resultFilterdBlocks = await dbViewUtils.getAccountFromTransactionsBlockRangeAsync(address, startBlock, endBlock, limit);
+  updateTransactonConfirmations(resultFilterdBlocks, highestBlockNumber)
+  let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
+  logger.info(`fetchToAccountBlockRangeFromDB, elpased time in sec: ${totalElapsedSecondsBlocks}`)
+}
+
+function updateTransactonConfirmations(resultFilterdBlocks: any[], highestBlockNumber: number) {
+  for (let index = 0; index < resultFilterdBlocks.length; index++) {
+    let transaction = resultFilterdBlocks[index];
+    transaction.confirmations = highestBlockNumber - transaction.blockNumber
+    delete transaction._id
+  }
+}
+
+// in memory filter methods - should be remove - save for now
+async function filterFromByBlocksAndLimit(address: string, startBlock: number, endBlock: number, limit: number, result: Array<Transaction>, highestBlockNumber: number) {
+  let startTimeBlocks = process.hrtime()
+  let resultFrom = await dbViewUtils.getAccountFromTransactionsAsync(address)
+  filterAndUpdateTransactionConfirmations(resultFrom, limit, startBlock, endBlock, result, highestBlockNumber)
+  let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
+  logger.info(`filterFromByBlocksAndLimit, elpased time in sec: ${totalElapsedSecondsBlocks}`)
+}
+
+
+async function filterToByBlocksAndLimit(address: string, startBlock: number, endBlock: number, limit: number, result: Array<Transaction>, highestBlockNumber: number) {
+  let startTimeBlocks = process.hrtime()
+  let resultFrom = await dbViewUtils.getAccountToTransactionsAsync(address)
+  filterAndUpdateTransactionConfirmations(resultFrom, limit, startBlock, endBlock, result, highestBlockNumber)
+  let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
+  logger.info(`filterToByBlocksAndLimit, elpased time in sec: ${totalElapsedSecondsBlocks}`)
+}
+
+function filterAndUpdateTransactionConfirmations(resultFrom: any[], limit: number, startBlock: number, endBlock: number, result: Transaction[], highestBlockNumber: number) {
+  let numInserterd = 0
   for (let index = 0; index < resultFrom.length && numInserterd < limit; index++) {
-    let transaction = resultFrom[index];
-    if ((startBlock != undefined && endBlock != undefined && 
-       (transaction.blockNumber >= startBlock && transaction.blockNumber <= endBlock)) || 
-       (startBlock === undefined && endBlock === undefined)) {
-      result.push(transaction);
-      transaction.confirmations = highestBlockNumber - transaction.blockNumber;
-      delete transaction._id;
-      numInserterd++;
+    let transaction = resultFrom[index]
+    if ((startBlock != undefined && endBlock != undefined &&
+      (transaction.blockNumber >= startBlock && transaction.blockNumber <= endBlock)) ||
+      (startBlock === undefined && endBlock === undefined)) {
+      result.push(transaction)
+      transaction.confirmations = highestBlockNumber - transaction.blockNumber
+      delete transaction._id
+      numInserterd++
     }
   }
 }
 
+
 module.exports = router
+
 
 
 
