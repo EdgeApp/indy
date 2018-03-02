@@ -1,20 +1,27 @@
 import * as logger from 'winston'
 import * as utils from '../../../common/utils'
-import * as dbViewUtils from '../../../common/dbViewUtils'
+import * as commonDbUtils from '../../../common/commonDbUtils'
 import { Transaction } from '../../../common/models/transaction'
 import { dbHandler } from '../utils/couchdb'
 import { configuration } from '../config/config'
 
-const historyDb = dbHandler.use(configuration.HistoryDBName)
+const historyDb = dbHandler.use(configuration.HistoryDBName) // just for debug performance
 const settingsDb = dbHandler.use(configuration.SettingDBName)
 const dropsDb = dbHandler.use(configuration.DropsDBName)
 
+var currentDbName = null
 // bulk transactions functions
-export async function saveTransactionsBulkAsync (transactions: Array<Transaction>) : Promise<void> {
+export async function saveTransactionsBulkAsync (transactions: Array<Transaction>, startBlock: number, endBlock: number) : Promise<void> {
   let totalStartTime = process.hrtime()
   logger.info(`saving ${transactions.length} transactions`)
+  let dbName = commonDbUtils.calcDBNameForBlockRange(startBlock)
+  if(currentDbName != dbName) {
+    await commonDbUtils.createDbAndViews(dbName)
+    currentDbName = dbName
+  }
+  const currentDb = dbHandler.use(dbName)
   return new Promise<void>(async (resolve, reject) => {
-    historyDb.bulk({docs: transactions}, async function (err, body) {
+    currentDb.bulk({docs: transactions}, async function (err, body) {
       if (!err) {
         let rejectedTransactions = []
         for (let index = 0; index < body.length; index++) {
@@ -34,6 +41,10 @@ export async function saveTransactionsBulkAsync (transactions: Array<Transaction
       }
     })
   })
+}
+
+function calcDBNameForBlockRangeOneDB(startBlock, endBlock) : string {
+  return historyDb
 }
 
  // indexer settings functions
@@ -75,25 +86,32 @@ export async function saveIndexerSettingsAsync (settings: any) : Promise<void> {
 
 // in couchdb views are created and updated only when the are asked for data.
 // call this function to make the views index the data and keep them updated.
-export async function refreshViews (account: string) {
+export async function refreshViews (account: string, startBlock: number) {
   // do not wait for the functions, let them work async
   logger.info('********************************')
   logger.info('**       refreshViews         **')
   logger.info('**   Ignore timeout errors    **')
   logger.info('********************************')
 
-  // dbViewUtils.getAccountFromTransactionsAsync(account).catch((error) => {
-  //   logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
-  // })
-  // dbViewUtils.getAccountToTransactionsAsync(account).catch((error) => {
-  //   logger.error(`Timeout getAccountBlockTransactionsAsync for refresh view, index in process, ignore error ${account}`)
-  // })
-  // dbViewUtils.getAccountFromTransactionsBlockRangeAsync(account, 0, 99999999).catch((error) => {
-  //   logger.error(`Timeout getAccountFromTransactionsBlockRangeAsync for refresh view, index in process, ignore error ${account}`)
-  // })
-  // dbViewUtils.getAccountToTransactionsBlockRangeAsync(account, 0, 99999999).catch((error) => {
-  //   logger.error(`Timeout getAccountToTransactionsBlockRangeAsync for refresh view, index in process, ignore error ${account}`)
-  // })  
+  commonDbUtils.refreshAccountFromBlocksTransactionsAsync(account, startBlock).catch((error) => {
+     logger.error(`Timeout refreshAccountFromBlocksTransactionsAsync, index in process, ignore error ${account}`)
+     logger.info('************************************************************************************************** ')
+  })
+  
+  commonDbUtils.refreshAccountToBlocksTransactionsAsync(account, startBlock).catch((error) => {
+    logger.error(`Timeout refreshAccountToBlocksTransactionsAsync, index in process, ignore error ${account}`)
+    logger.info('************************************************************************************************** ')    
+  })  
+
+  commonDbUtils.refreshAccountFromTransactionsAsync(account, startBlock).catch((error) => {
+    logger.error(`Timeout refreshAccountFromTransactionsAsync, index in process, ignore error ${account}`)
+    logger.info('************************************************************************************************** ')    
+  }) 
+  
+  commonDbUtils.refreshAccountToTransactionsAsync(account, startBlock).catch((error) => {
+    logger.error(`Timeout refreshAccountToTransactionsAsync, index in process, ignore error ${account}`)
+    logger.info('************************************************************************************************** ')    
+  })     
 }
 
 export async function saveDropsInfoAsync (dropInfo: any) : Promise<void> {

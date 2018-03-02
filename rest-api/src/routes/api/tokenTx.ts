@@ -1,7 +1,8 @@
 import * as request from 'request-promise'
 import * as express from 'express'
 import * as logger from 'winston'
-import * as dbViewUtils from '../../../../common/dbViewUtils'
+import * as commonDbUtils from '../../../../common/commonDbUtils'
+import * as utils from '../../../../common/utils'
 import { configuration } from '../../config/config'
 import { Transaction } from '../../../../common/models/transaction'
 
@@ -15,26 +16,27 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
     // highest block to calc confirmations
     let highestBlock = await web3.eth.getBlock('pending')
     let highestBlockNumber = highestBlock.number
+
     // startBlock and endBlock parameters
-    let startBlock = req.params.startBlock != undefined ? parseInt(req.params.startBlock) : undefined
-    let endBlock = req.params.endBlock != undefined ?parseInt(req.params.endBlock) : undefined
+    let startBlock = req.params.startBlock != undefined ? parseInt(req.params.startBlock) : 0
+    let endBlock = req.params.endBlock != undefined ?parseInt(req.params.endBlock) : 999999999
     // check start and end block validity
     if (startBlock > endBlock ||
-        startBlock < 0 || 
-        endBlock > highestBlockNumber) {
-      throw( new Error(`Error in blocks parameters, startBlock: ${startBlock}, endBlock: ${endBlock}`))
-    }    
+      startBlock < 0) {
+      throw( new Error(`REST API - Error in blocks range, startBlock: ${startBlock}, endBlock: ${endBlock}`))
+    }
     // calc the limit
-    let limit = req.params.limit && req.params.limit >= 10 && req.params.limit <= 10000 ? req.params.limit : 10000
+    let limit = req.params.limit && req.params.limit >= 10 && req.params.limit <= 10000 ? req.params.limit : 10000    
+
     let result = []
-    let reqRes
+    let liveBlocks: boolean = false
 
     // first, check if we can include the live block.
     // then take the live transactions (12 blocks) from indexer. user the baseurl to fetch account, from or to requests.
     if (endBlock == undefined || 
        (endBlock && (endBlock >= highestBlockNumber - configuration.MaxEphemeralForkBlocks))) {
       try {
-        reqRes = await request({
+        let reqRes = await request({
           uri: 'indexer/liveBlocks/' + req.params.address + '/account',
           baseUrl: configuration._indexerUrl,
           json: true,
@@ -42,6 +44,7 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
         }) 
         // add the results to "result" array after filtering and limiting
         filterByBlocksAndLimit(startBlock, endBlock, reqRes.result, limit, result, highestBlockNumber, req.params.contractAddress)
+        liveBlocks = true        
       } catch (error) {
         logger.error('Error getting live blocks from indexer')
       }
@@ -52,39 +55,18 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
     // take all the contracts transactions that are FROM the account
     if (leftLimit > 0) {
       // performe get contract query, limit results with "leftLimit"
-      let fromResult = await dbViewUtils.getAccountFromTransactionsAsync(req.params.address, leftLimit)
-      // add the results to "result" array after filtering and limiting      
-      filterByBlocksAndLimit(startBlock, endBlock, fromResult, leftLimit, result, highestBlockNumber, req.params.contractAddress)
+
+      let resultFrom = await fetchAccountBlockRangeFromDB(req.params.address, startBlock, endBlock, leftLimit, highestBlockNumber, commonDbUtils.AccountQuery.ALL)
+      updateTransactonConfirmations(resultFrom, highestBlock)
+      result = result.concat(resultFrom)
     }
-
-    // take all the contracts transactions that are TO the account    
-    if (leftLimit > 0) {
-      // performe get contract query, limit results with "leftLimit"
-      let toResult = await dbViewUtils.getAccountToTransactionsAsync(req.params.address, leftLimit)
-      // add the results to "result" array after filtering and limiting      
-      filterByBlocksAndLimit(startBlock, endBlock, toResult, leftLimit, result, highestBlockNumber, req.params.contractAddress)
-    }    
-
-    // sort results by block number
-    result.sort((transactionA, transactionB) => {
-      if (transactionA.blockNumber < transactionB.blockNumber){
-        return -1;
-      }
-      if (transactionA.blockNumber > transactionB.blockNumber){
-        return 1;
-      }
-      return 0
-    })
-
-    // We took "leftLimit" from the "from" query and the "to" query, so we need to make sure not to return more than limit.
-    result = result.splice(0, limit)
 
     return res.json(
       {
         'status': 1,
         'message': 'OK',
         'count': result.length,
-        'includeLiveBlocks' : reqRes != undefined,         
+        'includeLiveBlocks': liveBlocks,         
         'result': result
       })
   } catch (error) {
@@ -96,6 +78,25 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
       })
   }
 })
+
+
+// DB filter methods
+async function fetchAccountBlockRangeFromDB(address: string, startBlock: number, endBlock: number, limit: any, highestBlockNumber: number, query: commonDbUtils.AccountQuery) {
+  let startTimeBlocks = process.hrtime()
+  let resultFilterdBlocks = await commonDbUtils.getAccountTransactionsBlockRangeAllDBsAsync(address, startBlock, endBlock, query, limit)
+  updateTransactonConfirmations(resultFilterdBlocks, highestBlockNumber)   
+  let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
+  logger.info(`fetchFromAccountBlockRangeFromDB, elpased time in sec: ${totalElapsedSecondsBlocks}`)
+  return resultFilterdBlocks
+}
+
+function updateTransactonConfirmations(resultFilterdBlocks: any[], highestBlockNumber: number) {
+  for (let index = 0; index < resultFilterdBlocks.length; index++) {
+    let transaction = resultFilterdBlocks[index];
+    transaction.confirmations = highestBlockNumber - transaction.blockNumber
+    delete transaction._id
+  }
+}
 
 function filterByBlocksAndLimit(startBlock: number, endBlock: number, resultFrom: Array<Transaction>, limit: number, 
                                 result: Array<Transaction>, highestBlockNumber: number, contractAddress : string) {
@@ -114,5 +115,6 @@ function filterByBlocksAndLimit(startBlock: number, endBlock: number, resultFrom
     }
   }
 }
+
 
 module.exports = router

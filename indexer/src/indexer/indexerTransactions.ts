@@ -85,9 +85,9 @@ export class IndexerTransactions {
       if (!this.indexSetttings) {
         this.indexSetttings = new IndexerSettings()
         logger.info(`IndexerTransactions init, first chunk, block # 45000 to block # ${configuration.BlockChunkSize}`)
-        this.indexSetttings.startBlock = 45000 // no transactions before this block, we can index from here
-        this.indexSetttings.lastBlock = 45000
-        this.indexSetttings.endBlock = 45000 + configuration.BlockChunkSize
+        this.indexSetttings.startBlock = 0 // no transactions before this block, we can index from here
+        this.indexSetttings.lastBlock = 0
+        this.indexSetttings.endBlock =+ configuration.BlockChunkSize
         await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
         logger.info(`IndexerTransactions init, index setting created, first start index from ${this.indexSetttings.lastBlock} to ${this.indexSetttings.endBlock}`)
       }
@@ -161,7 +161,8 @@ export class IndexerTransactions {
   // take care of the current range, fetch #BlockStep blocks and save
   async startIndex (startBlock: number, endBlock: number) : Promise<void> {
     try {
-      logger.info(`startIndex method, startBlock # ${startBlock} to endBlock # ${endBlock}`)
+      logger.info('***********************************************************************')
+      logger.info(`startIndex method, startBlock # ${startBlock} to endBlock # ${endBlock - 1}`)
       while (startBlock < endBlock) {
         let start = startBlock
         let end = ((startBlock + configuration.BlockStep) <= endBlock) ? startBlock + configuration.BlockStep : endBlock
@@ -178,10 +179,11 @@ export class IndexerTransactions {
 
         this.indexSetttings.lastBlock = end
         await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+        logger.info('***********************************************************************')
       }
       // make sure to trigger views indexing every 10,000 blocks - only on history indexing.
       // do not wait for this call, let it run at the backgound. Ignore timeouts.
-      dbUtils.refreshViews('refreshDummyAccount')         
+      dbUtils.refreshViews('refreshDummyAccount', endBlock - 1)         
     } catch (error) {
       logger.error(`startIndex error in blocks ${startBlock} - ${endBlock}, abort!`)
       logger.error(error)
@@ -197,24 +199,24 @@ export class IndexerTransactions {
         logger.error('blockchainUtils.getBlockTransactionsAsync return null, abort')
         throw (new Error('blockchainUtils.getBlockTransactionsAsync return null, abort.'))
       }
-      logger.info(`indexBlockRangeTransactions ${transactions.length} transactions returned from block #${startBlock} to block #${endBlock}.`)
+      logger.info(`indexBlockRangeTransactions ${transactions.length} transactions returned from block #${startBlock} to block #${endBlock - 1}.`)
       this.transactionCount += transactions.length
       logger.info(`indexBlockRangeTransactions, total transactions so far in this run ${this.transactionCount}.`)
-      await this.saveTransactions(transactions)
+      await this.saveTransactions(transactions, startBlock, endBlock)
     } catch (error) {
-      logger.error(`indexBlockRangeTransactions error in blocks ${startBlock} - ${endBlock}, abort`)
+      logger.error(`indexBlockRangeTransactions error in blocks ${startBlock} - ${endBlock - 1}, abort`)
       logger.error( error)
       throw (new Error('indexBlockRangeTransactions - error, abort!'))
     }
   }
 
   // save transactions in bulks
-  async saveTransactions (transactions: any) : Promise<void> {
+  async saveTransactions (transactions: any, startBlock: number, endBlock: number) : Promise<void> {
     try {
       while (transactions.length) {
         let transactionsToSave = transactions.splice(0, configuration.LimitTransactionBlukSave)
         try {
-          await dbUtils.saveTransactionsBulkAsync(transactionsToSave)
+          await dbUtils.saveTransactionsBulkAsync(transactionsToSave, startBlock, endBlock)
         } catch (error) {
           logger.log('error', 'saveTransactions - error in dbutils while saving transactions, abort')
           logger.log('error', error)
@@ -297,7 +299,7 @@ export class IndexerTransactions {
       if(lastSavedBlock - lastRefreshViewBlock > 100) {
         // make sure to trigger views indexing every 1000 blocks
         // do not wait for this call, let it run at the backgound. Ignore timeouts.
-        dbUtils.refreshViews('refreshLiveDummyAccount')  
+        dbUtils.refreshViews('refreshLiveDummyAccount', lastSavedBlock)  
         lastRefreshViewBlock = lastSavedBlock
       }
       logger.info(`invoke again in :${nextFetch} sec`)
@@ -362,7 +364,7 @@ export class IndexerTransactions {
         let entry = this.liveBlocksTransactionsMap.get(blockNumber)
         if (entry) {
           logger.info(`saveAndRemoveHistoryBlocks save and remove block ${blockNumber}`)
-          await this.saveTransactions(entry.transactions)
+          await this.saveTransactions(entry.transactions, blockNumber, blockNumber)
           this.liveBlocksTransactionsMap.delete(blockNumber)
         } else {
           logger.info(`saveAndRemoveHistoryBlocks error, block ${blockNumber} not in map`)
