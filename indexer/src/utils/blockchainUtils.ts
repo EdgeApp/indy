@@ -63,7 +63,7 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
     logger.error(error)
     return null
   }
-  logger.info(`total transaction ${transactions.length} in block #${startBlock} to block #${endBlock}.`)
+  logger.info(`total transaction ${transactions.length} in block #${startBlock} to block #${endBlock - 1}.`)
   return transactions
 }
 

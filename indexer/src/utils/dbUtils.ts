@@ -5,7 +5,6 @@ import { Transaction } from '../../../common/models/transaction'
 import { dbHandler } from '../utils/couchdb'
 import { configuration } from '../config/config'
 
-const historyDb = dbHandler.use(configuration.HistoryDBName) // just for debug performance
 const settingsDb = dbHandler.use(configuration.SettingDBName)
 const dropsDb = dbHandler.use(configuration.DropsDBName)
 
@@ -41,10 +40,6 @@ export async function saveTransactionsBulkAsync (transactions: Array<Transaction
       }
     })
   })
-}
-
-function calcDBNameForBlockRangeOneDB(startBlock, endBlock) : string {
-  return historyDb
 }
 
  // indexer settings functions

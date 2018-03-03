@@ -4,17 +4,12 @@ import { configuration } from '../config/config'
 import { dbHandler } from '../utils/couchdb'
 import * as logger from 'winston'
 
-const historyDb = dbHandler.use(configuration.HistoryDBName)
 
 export async function CreateDataBases () : Promise<void> {
   logger.info('creating databases')
 //  await initHistoryDB()
   await initDropsDB()
   await initSettingsDB()
-}
-
-export async function initHistoryDB () : Promise<void> {
-  await commonDbUtils.initDB(configuration.HistoryDBName)
 }
 
 export async function initDropsDB () : Promise<void> {
@@ -24,5 +19,3 @@ export async function initDropsDB () : Promise<void> {
 export async function initSettingsDB () : Promise<void> {
   await commonDbUtils.initDB(configuration.SettingDBName)
 }
-
-

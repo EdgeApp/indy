@@ -1,5 +1,8 @@
 import * as yargs from 'yargs'
 import * as logger from 'winston'
+import * as commonConfiguration from './../../../common/config'
+import * as consts from './../../../common/consts'
+
 const web3 = require('web3')
 const net = require('net')
 
@@ -8,15 +11,15 @@ export class Config {
   _ipcProvider: any
   _ipcPath: string
   _useIpc: boolean
-  _DBUrl: string
+  _dBUrl: string
 
   constructor () {
-    this._ipcPath = process.env['HOME'] + '/.local/share/io.parity.ethereum/jsonrpc.ipc'
+    this._ipcPath = process.env['HOME'] + consts.ipcPath
     this._ipcProvider = new web3.providers.IpcProvider(this._ipcPath, net)
-    this._provider = new web3.providers.HttpProvider('http://127.0.0.1:8545')
-    this._port = 3001
+    this._provider = new web3.providers.HttpProvider(consts.httpProvider)
+    this._port = consts.indexerPort
     this._useIpc = true
-    this._DBUrl = 'http://admin:123456@localhost:5984'
+    this._dBUrl = consts.dBUrl
   }
 
   _port : number
@@ -39,8 +42,9 @@ export class Config {
       }
 
       if (args.dburl) {
-        this._DBUrl = args.dburl
+        this._dBUrl = args.dburl
         logger.info(`configure DBUrl from command line: ${args.dburl}`)
+        commonConfiguration.configuration.DBUrl = args.dburl
       }
       logger.info(`config readCommandLineArgs end`)
     } catch (error) {
@@ -53,17 +57,15 @@ export class Config {
     return this.useIpc ? this._ipcProvider : this._provider
   }
 
-  get HistoryDBName (): string { return 'supernodedb' }
-  get DropsDBName (): string { return 'supernodedropsdb' }
-  get SettingDBName (): string { return 'supernodesettingsdb' }
-  get DBUrl (): string { return this._DBUrl }
+  get DropsDBName (): string { return consts.dropsDBName }
+  get SettingDBName (): string { return consts.settingDBName }
+  get DBUrl (): string { return this._dBUrl }
   get Port (): number { return this._port }
 
   get BlockReqeusts (): number { return 100 }  // parity parallel block requests. can't be larger than blockstep.
   get BlockStep (): number { return 1000 } // number of items to save to db in one time . be carefull in non bulk mode. can't be larger than chunksize
   get BlockChunkSize (): number { return 10000 } // number of blocks that this indexer is taking to work on everytime
-  get UseBulk (): boolean { return true }
-  get LimitTransactionBlukSave (): number { return 1000 }
+  get LimitTransactionBlukSave (): number { return 5000 }
   get LogFileName (): string { return 'supernode-indexer.log' }
   get LogTimeStampConsole (): boolean { return true }
   get MaxEphemeralForkBlocks (): number { return 12 }

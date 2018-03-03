@@ -103,7 +103,7 @@ export class IndexerTransactions {
     let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks    
     if (this.indexSetttings.startBlock >= this.indexSetttings.endBlock ||
         this.indexSetttings.lastBlock > this.indexSetttings.endBlock ||   
-        this.indexSetttings.endBlock >= highestBlockNumberToIndex ||           
+        this.indexSetttings.endBlock > highestBlockNumberToIndex ||           
         this.indexSetttings.startBlock < 0 ||
         this.indexSetttings.endBlock < 0 ||
         this.indexSetttings.lastBlock < 0) {
@@ -121,7 +121,7 @@ export class IndexerTransactions {
     let done = false
     // for all history blocks, up to the live MaxEphemeralForkBlocks blocks - index in chunks
     try {
-      while ((!done && this.indexSetttings.endBlock < highestBlockNumberToIndex) ||
+      while ((!done && this.indexSetttings.endBlock <= highestBlockNumberToIndex) ||
         (this.indexSetttings.lastBlockToIndex && this.indexSetttings.endBlock < this.indexSetttings.lastBlockToIndex)) {
         let startTime = process.hrtime()
         // index block chunk 

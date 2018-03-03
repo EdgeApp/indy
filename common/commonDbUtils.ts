@@ -2,12 +2,7 @@ import * as logger from 'winston'
 import * as consts from './consts'
 import { dbHandler } from './couchdb'
 import { Transaction } from './models/transaction'
-
-// TODO - remove
-var historyDb
-export function setHitoryDb (historyDbInstance: string) : void {
-  historyDb = historyDbInstance
-}
+import { configuration } from './config'
 
 export enum AccountQuery {
   ALL,
@@ -15,19 +10,21 @@ export enum AccountQuery {
   TO
 }
 
+const settingsDb = dbHandler.use(configuration.SettingDBName)
 
-// **************************************************************************
-// get accout methods by view according to accout on the specific block range
-// **************************************************************************
+// **********************************************************************************************
+// get accout methods by view according to accout on the specific block range filtering in MEMORY
+// **********************************************************************************************
 
 // get account by FROM view from all DBS
 export async function getAccountTransactionsBlockRangeMemoryAllDBsAsync (account: string, startBlock: number, endBlock: number, query: AccountQuery = AccountQuery.ALL, limitTransactions: number = 10000) : Promise<Array<any>> {
-  // deside on DBs to ask according to block range
-  let DB = ["supernodedb-0-99999", "supernodedb-100000-199999", "supernodedb-200000-299999", "supernodedb-300000-399999",
-            "supernodedb-400000-499999", "supernodedb-500000-599999", "supernodedb-600000-699999", "supernodedb-700000-799999",
-            "supernodedb-800000-899999", "supernodedb-900000-999999"]
   // loop on all dbs untill limit reached
+  let DB = await calcDBNameListForBlockRangeFetch(startBlock, endBlock)
 
+  // for (let index = 0; index < DB.length - 1; index++) {
+  //   const dbName = DB[index]
+  //   createDbAndViews(dbName)
+  // }  
   // for each db:
   // get FROM and TO
   // sort
@@ -37,25 +34,30 @@ export async function getAccountTransactionsBlockRangeMemoryAllDBsAsync (account
   for (let index = 0; index < DB.length; index++) {
     const dbName = DB[index]
     if(query == AccountQuery.ALL) {
-      let resFrom = await getAccountFromTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
-      let resTo = await getAccountToTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
-      result = result.concat(resFrom)
-      result = result.concat(resTo)
-      
-      // sort results by block number
-      result.sort((transactionA, transactionB) => {
-        if (transactionA.blockNumber < transactionB.blockNumber){
-          return -1;
-        }
-        if (transactionA.blockNumber > transactionB.blockNumber){
-          return 1;
-        }
-        return 0
-      })
-      if(result.length >= limitTransactions) {
-        result = result.splice(0, limitTransactions)      
-        return result      
+      try {
+        let resFrom = await getAccountFromTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
+        let resTo = await getAccountToTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
+        result = result.concat(resFrom)
+        result = result.concat(resTo)
+        
+        // sort results by block number
+        result.sort((transactionA, transactionB) => {
+          if (transactionA.blockNumber < transactionB.blockNumber){
+            return -1;
+          }
+          if (transactionA.blockNumber > transactionB.blockNumber){
+            return 1;
+          }
+          return 0
+        })
+        if(result.length >= limitTransactions) {
+          result = result.splice(0, limitTransactions)      
+          return result      
+        }        
+      } catch (error) {
+        
       }
+
     } else if(query == AccountQuery.FROM) {
       let resFrom = await getAccountFromTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
       result = result.concat(resFrom)
@@ -75,6 +77,50 @@ export async function getAccountTransactionsBlockRangeMemoryAllDBsAsync (account
   return result      
 }
 
+export async function getAccountContractTransactionsBlockRangeMemoryAllDBsAsync (account: string, contractAddress: string, startBlock: number, endBlock: number, query: AccountQuery = AccountQuery.ALL, limitTransactions: number = 10000) : Promise<Array<any>> {
+  // deside on DBs to ask according to block range
+  // let DB = ["supernodedb-0-99999", "supernodedb-100000-199999", "supernodedb-200000-299999", "supernodedb-300000-399999",
+  //           "supernodedb-400000-499999", "supernodedb-500000-599999", "supernodedb-600000-699999", "supernodedb-700000-799999",
+  //           "supernodedb-800000-899999", "supernodedb-900000-999999"]
+  // loop on all dbs untill limit reached
+  let DB = await calcDBNameListForBlockRangeFetch(startBlock, endBlock)
+
+  // for each db:
+  // get FROM and TO
+  // sort
+  // slice if limit reached and return
+  // if not reached, continue to next DB
+  let result = []
+  for (let index = 0; index < DB.length; index++) {
+    const dbName = DB[index]
+
+    if(query == AccountQuery.ALL) {
+      let resFrom = await getAccountFromTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
+      let resTo = await getAccountToTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
+      
+      let tempFrom = filterContractByBlocksAndLimit(startBlock, endBlock, contractAddress, resFrom, limitTransactions)
+      result = result.concat(tempFrom)
+      let tempTo = filterContractByBlocksAndLimit(startBlock, endBlock, contractAddress, resTo, limitTransactions)
+      result = result.concat(tempTo)
+      
+      // sort results by block number
+      result.sort((transactionA, transactionB) => {
+        if (transactionA.blockNumber < transactionB.blockNumber){
+          return -1;
+        }
+        if (transactionA.blockNumber > transactionB.blockNumber){
+          return 1;
+        }
+        return 0
+      })
+      if(result.length >= limitTransactions) {
+        result = result.splice(0, limitTransactions)      
+        return result      
+      }
+    }
+  }
+  return result      
+}
 
 // get account by FROM view
 export async function getAccountFromTransactionsMemoryAsync (dbName: string, account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
@@ -87,8 +133,6 @@ export async function getAccountToTransactionsMemoryAsync (dbName: string, accou
   logger.info(`getAccountToTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
   return getAccountTransactionsAsync(dbName, consts.toDoc, consts.fixedViewName, account, limitTransactions)
 }
-
-
 
 // get Account 
 async function getAccountTransactionsAsync (dbName: string, doc: string, view: string, account: string, limitTransactions: number) : Promise<Array<any>> {
@@ -107,7 +151,7 @@ async function getAccountTransactionsAsync (dbName: string, doc: string, view: s
         logger.info('**********************************************************************************')
         resolve(result)
       } else {
-        //logger.error(err)
+        logger.error(err)
         reject(new Error(`Error reject getAccountTransactionsAsync ${account}`))
       }
     })
@@ -119,51 +163,19 @@ async function getAccountTransactionsAsync (dbName: string, doc: string, view: s
 }
 
 
-// **************************************************************************************
-// get accout methods by view according to accout - currently used for refresh view only
-// **************************************************************************************
-
-// get account by FROM view
-export async function refreshAccountFromBlocksTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
-  let dbName = calcDBNameForBlockRange(endBlock)
-  logger.info(`getAccountFromTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
-  return getAccountTransactionsAsync(dbName, consts.fromDocBlocks, consts.fixedViewName, account, limitTransactions)
-}
-
-// get account by TO view
-export async function refreshAccountToBlocksTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
-  let dbName = calcDBNameForBlockRange(endBlock)
-  logger.info(`getAccountToTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
-  return getAccountTransactionsAsync(dbName, consts.toDocBlocks, consts.fixedViewName, account, limitTransactions)
-}
-
-// get account by FROM view
-export async function refreshAccountFromTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
-  let dbName = calcDBNameForBlockRange(endBlock)
-  logger.info(`getAccountFromTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
-  return getAccountTransactionsAsync(dbName, consts.fromDoc, consts.fixedViewName, account, limitTransactions)
-}
-
-// get account by TO view
-export async function refreshAccountToTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
-  let dbName = calcDBNameForBlockRange(endBlock)
-  logger.info(`getAccountToTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
-  return getAccountTransactionsAsync(dbName, consts.toDoc, consts.fixedViewName, account, limitTransactions)
-}
-
-
-// **************************************************************************
-// get accout methods by view according to accout on the specific block range
-// **************************************************************************
+// *****************************************************************************************************************
+// get accout methods by view according to accout on the specific block range - filtering in DB view with double key
+// *****************************************************************************************************************
 
 // get account by FROM view from all DBS
 export async function getAccountTransactionsBlockRangeAllDBsAsync (account: string, startBlock: number, endBlock: number, query: AccountQuery = AccountQuery.ALL, limitTransactions: number = 10000) : Promise<Array<any>> {
   // deside on DBs to ask according to block range
-  let DB = ["supernodedb-0-99999", "supernodedb-100000-199999", "supernodedb-200000-299999", "supernodedb-300000-399999",
-            "supernodedb-400000-499999", "supernodedb-500000-599999", "supernodedb-600000-699999", "supernodedb-700000-799999",
-            "supernodedb-800000-899999", "supernodedb-900000-999999"]
+  // let DB = ["supernodedb-0-99999", "supernodedb-100000-199999", "supernodedb-200000-299999", "supernodedb-300000-399999",
+  //           "supernodedb-400000-499999", "supernodedb-500000-599999", "supernodedb-600000-699999", "supernodedb-700000-799999",
+  //           "supernodedb-800000-899999", "supernodedb-900000-999999"]
   // loop on all dbs untill limit reached
-
+  let DB = await calcDBNameListForBlockRangeFetch(startBlock, endBlock)
+ 
   // for each db:
   // get FROM and TO
   // sort
@@ -212,15 +224,16 @@ export async function getAccountTransactionsBlockRangeAllDBsAsync (account: stri
   return result      
 }
 
-
-
-// get CONTRACT account tx from all DBS
+// **********************************************************************************************************************
+// get CONTRACT account tx by view according to accout on the specific block range - filtering in DB view with double key
+// **********************************************************************************************************************
 export async function getAccountContractTransactionsBlockRangeAllDBsAsync (account: string, contractAddress: string, startBlock: number, endBlock: number, query: AccountQuery = AccountQuery.ALL, limitTransactions: number = 10000) : Promise<Array<any>> {
   // deside on DBs to ask according to block range
-  let DB = ["supernodedb-0-99999", "supernodedb-100000-199999", "supernodedb-200000-299999", "supernodedb-300000-399999",
-            "supernodedb-400000-499999", "supernodedb-500000-599999", "supernodedb-600000-699999", "supernodedb-700000-799999",
-            "supernodedb-800000-899999", "supernodedb-900000-999999"]
+  // let DB = ["supernodedb-0-99999", "supernodedb-100000-199999", "supernodedb-200000-299999", "supernodedb-300000-399999",
+  //           "supernodedb-400000-499999", "supernodedb-500000-599999", "supernodedb-600000-699999", "supernodedb-700000-799999",
+  //           "supernodedb-800000-899999", "supernodedb-900000-999999"]
   // loop on all dbs untill limit reached
+  let DB = await calcDBNameListForBlockRangeFetch(startBlock, endBlock)
 
   // for each db:
   // get FROM and TO
@@ -275,18 +288,6 @@ function filterContractByBlocksAndLimit(startBlock: number, endBlock: number, co
   return result
 }
 
-// get by FROM view
-export async function getAccountFromTransactionsBlockRangeAsync (account: string, startBlock: number, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
-  let dbName = calcDBNameForBlockRange(startBlock)
-  return getAccountTransactionsBlockRangeAsync(dbName, consts.fromDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
-}
-
-// get by TO view
-export async function getAccountToTransactionsBlockRangeAsync (account: string, startBlock: number, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
-  let dbName = calcDBNameForBlockRange(startBlock)
-  return getAccountTransactionsBlockRangeAsync(dbName, consts.toDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
-}
-
 // get account by the specific view, filterd by block range
 async function getAccountTransactionsBlockRangeAsync (db: any, doc: string, view: string, account: string, startBlock: number, endBlock: number,limitTransactions: number) : Promise<Array<any>> {
 
@@ -317,6 +318,9 @@ async function getAccountTransactionsBlockRangeAsync (db: any, doc: string, view
   return promise  
 }
 
+// ***************
+// DB utils
+// ***************
 export async function initDB (DBName : string) {
   return new Promise((resolve, reject) => {
     logger.info(`getting database ${DBName}`)
@@ -355,15 +359,35 @@ export function calcDBNameForBlockRange(startBlock) : string {
   return dbName
  }
 
- export function calcDBNameListForBlockRangeFetch(startBlock) : Array<string> {
+ export async function calcDBNameListForBlockRangeFetch(startBlock: number, endBlock: number) : Promise<Array<string>> {
+  let indexerSettings = await getIndexerSettingsAsync('settingsid')
   let dbNameList = []
-  for (let index = 0; index < 999999999; index += 100000) {
-    if(index >= startBlock && index + 100000 < startBlock ){
+  for (let index = 0; index < 999999999 && index < indexerSettings.lastBlock ; index += 100000) {
+    let indexLimited = index + 100000 <= indexerSettings.lastBlock ? index + 100000 : indexerSettings.lastBlock
+    if(startBlock >= index && startBlock < (index + 100000) || 
+      index > startBlock && endBlock > indexLimited){
       dbNameList.push('supernodedb-' + index.toString() + '-' + (index + 100000 - 1).toString())
     }
+    //if(endBlock >= index && endBlock < index + 100000){    
   }
   return dbNameList
  }
+
+  // indexer settings functions
+export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
+  logger.info(`fetching settings for # ${indexerID}`)
+  return new Promise((resolve, reject) => {
+    settingsDb.get(indexerID, async (error, existing) => {
+      if (!error) {
+        logger.info(`settings for indexer ${indexerID} found, ${JSON.stringify(existing)}`)
+        resolve(existing)
+      } else {
+        logger.log('error', `error fetching settings for indexer ${indexerID}`)
+        reject(new Error(`error fetching settings for indexer ${indexerID}`))
+      }
+    })
+  })
+}
 
  // decalre emit so ts will compile
  //declare function emit(key: any, value: any): void
@@ -439,3 +463,36 @@ export function calcDBNameForBlockRange(startBlock) : string {
      })
    })
  }
+
+
+// **************************************************************************************
+// refresh accout methods by views  - TODO - only 2 views should left after tests
+// **************************************************************************************
+
+// get account by FROM view
+export async function refreshAccountFromBlocksTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
+  let dbName = calcDBNameForBlockRange(endBlock)
+  logger.info(`getAccountFromTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
+  return getAccountTransactionsAsync(dbName, consts.fromDocBlocks, consts.fixedViewName, account, limitTransactions)
+}
+
+// get account by TO view
+export async function refreshAccountToBlocksTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
+  let dbName = calcDBNameForBlockRange(endBlock)
+  logger.info(`getAccountToTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
+  return getAccountTransactionsAsync(dbName, consts.toDocBlocks, consts.fixedViewName, account, limitTransactions)
+}
+
+// get account by FROM view
+export async function refreshAccountFromTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
+  let dbName = calcDBNameForBlockRange(endBlock)
+  logger.info(`getAccountFromTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
+  return getAccountTransactionsAsync(dbName, consts.fromDoc, consts.fixedViewName, account, limitTransactions)
+}
+
+// get account by TO view
+export async function refreshAccountToTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
+  let dbName = calcDBNameForBlockRange(endBlock)
+  logger.info(`getAccountToTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
+  return getAccountTransactionsAsync(dbName, consts.toDoc, consts.fixedViewName, account, limitTransactions)
+}
