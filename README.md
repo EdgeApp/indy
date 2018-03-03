@@ -171,6 +171,22 @@ echo "deb https://apache.bintray.com/couchdb-deb xenial main" \
 The "xenial" parameter is for ubuntu. For non ubuntu read more here:
 http://docs.couchdb.org/en/2.0.0/install/unix.html
 
+Config couchdb to run with enought open files
+1. http://docs.couchdb.org/en/stable/maintenance/performance.html#system-resource-limits
+
+2. In couch config http://127.0.0.1:5984/_utils/#_config/couchdb@127.0.0.1
+set max_dbs_open to 15k
+add
+'''
+[couchdb]
+update_lru_on_read = false
+'''
+3. add /etc/systemd/system/couchdb.service.d/limits.conf file with the value 
+```
+[Service]
+LimitNOFILE=64000
+```
+
 ### Run Parity
 Make sure to fully sync Parity before start indexing. Also, no-warp is important to get full history.
 ```
