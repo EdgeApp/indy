@@ -430,8 +430,11 @@ export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
  
    await addViewAsync(dbName, consts.toDoc, dbViews[consts.toDoc])
    await addViewAsync(dbName, consts.fromDoc, dbViews[consts.fromDoc])
-   await addViewAsync(dbName, consts.fromDocBlocks, dbViews[consts.fromDocBlocks])
-   await addViewAsync(dbName, consts.toDocBlocks, dbViews[consts.toDocBlocks])
+
+   if(configuration.BlocksViewSupported) {
+    await addViewAsync(dbName, consts.fromDocBlocks, dbViews[consts.fromDocBlocks])
+    await addViewAsync(dbName, consts.toDocBlocks, dbViews[consts.toDocBlocks])
+  }
    
  }
  

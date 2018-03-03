@@ -69,6 +69,7 @@ export class Config {
   get LogFileName (): string { return 'supernode-indexer.log' }
   get LogTimeStampConsole (): boolean { return true }
   get MaxEphemeralForkBlocks (): number { return 12 }
+  get BlocksViewSupported  (): boolean { return consts.blockViewsSupported}
  }
 
 export const configuration = new Config()

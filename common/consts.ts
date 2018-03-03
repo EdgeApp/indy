@@ -22,4 +22,6 @@ export const restPort = 3000
 export const  dropsDBName = 'supernodedropsdb' 
 export const  settingDBName = 'supernodesettingsdb' 
 
+export const blockViewsSupported: boolean = true
+
 
