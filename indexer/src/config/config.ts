@@ -62,13 +62,13 @@ export class Config {
   get DBUrl (): string { return this._dBUrl }
   get Port (): number { return this._port }
 
-  get BlockReqeusts (): number { return 100 }  // parity parallel block requests. can't be larger than blockstep.
-  get BlockStep (): number { return 1000 } // number of items to save to db in one time . be carefull in non bulk mode. can't be larger than chunksize
-  get BlockChunkSize (): number { return 10000 } // number of blocks that this indexer is taking to work on everytime
-  get LimitTransactionBlukSave (): number { return 5000 }
-  get LogFileName (): string { return 'supernode-indexer.log' }
-  get LogTimeStampConsole (): boolean { return true }
-  get MaxEphemeralForkBlocks (): number { return 12 }
+  get BlockReqeusts (): number { return consts.blockReqeusts }  // parity parallel block requests. can't be larger than blockstep.
+  get BlockStep (): number { return consts.blockStep } // number of items to save to db in one time . be carefull in non bulk mode. can't be larger than chunksize
+  get BlockChunkSize (): number { return consts.blockChunkSize } // number of blocks that this indexer is taking to work on everytime
+  get LimitTransactionBlukSave (): number { return consts.limitTransactionBlukSave }
+  get LogFileName (): string { return consts.indexerLogFileName }
+  get LogTimeStampConsole (): boolean { return consts.logTimeStampConsole }
+  get MaxEphemeralForkBlocks (): number { return consts.maxEphemeralForkBlocks }
   get BlocksViewSupported  (): boolean { return consts.blockViewsSupported}
  }
 

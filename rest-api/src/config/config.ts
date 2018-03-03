@@ -63,8 +63,8 @@ export class Config {
 
   get DBUrl (): string { return this._dBUrl }
   get Port (): number { return this._port }
-  get LogFileName (): string { return 'supernode-rest.log' }
-  get MaxEphemeralForkBlocks (): number { return 12 }
+  get LogFileName (): string { return consts.restLogFileName }
+  get MaxEphemeralForkBlocks (): number { return consts.maxEphemeralForkBlocks }
 }
 
 export const configuration = new Config()
