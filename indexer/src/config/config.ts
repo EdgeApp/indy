@@ -69,7 +69,7 @@ export class Config {
   get LogFileName (): string { return consts.indexerLogFileName }
   get LogTimeStampConsole (): boolean { return consts.logTimeStampConsole }
   get MaxEphemeralForkBlocks (): number { return consts.maxEphemeralForkBlocks }
-  get BlocksViewSupported  (): boolean { return consts.blockViewsSupported}
+  get FilterInMemory (): boolean { return consts.filterInMemory}
  }
 
 export const configuration = new Config()

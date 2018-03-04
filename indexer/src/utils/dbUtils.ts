@@ -88,22 +88,20 @@ export async function refreshViews (account: string, startBlock: number) {
   logger.info('**   Ignore timeout errors    **')
   logger.info('********************************')
 
-  commonDbUtils.refreshAccountFromTransactionsAsync(account, startBlock).catch((error) => {
-    logger.error(`Timeout refreshAccountFromTransactionsAsync, index in process, ignore error ${account}`)
-    logger.info('************************************************************************************************** ')    
-  }) 
-  
-  commonDbUtils.refreshAccountToTransactionsAsync(account, startBlock).catch((error) => {
-    logger.error(`Timeout refreshAccountToTransactionsAsync, index in process, ignore error ${account}`)
-    logger.info('************************************************************************************************** ')    
-  })   
-  
-  if(configuration.BlocksViewSupported) {
+  if(configuration.FilterInMemory) {
+    commonDbUtils.refreshAccountFromTransactionsAsync(account, startBlock).catch((error) => {
+      logger.error(`Timeout refreshAccountFromTransactionsAsync, index in process, ignore error ${account}`)
+      logger.info('************************************************************************************************** ')    
+    }) 
+    commonDbUtils.refreshAccountToTransactionsAsync(account, startBlock).catch((error) => {
+      logger.error(`Timeout refreshAccountToTransactionsAsync, index in process, ignore error ${account}`)
+      logger.info('************************************************************************************************** ')    
+    }) 
+  } else {
     commonDbUtils.refreshAccountFromBlocksTransactionsAsync(account, startBlock).catch((error) => {
       logger.error(`Timeout refreshAccountFromBlocksTransactionsAsync, index in process, ignore error ${account}`)
       logger.info('************************************************************************************************** ')
     })
-    
     commonDbUtils.refreshAccountToBlocksTransactionsAsync(account, startBlock).catch((error) => {
       logger.error(`Timeout refreshAccountToBlocksTransactionsAsync, index in process, ignore error ${account}`)
       logger.info('************************************************************************************************** ')    

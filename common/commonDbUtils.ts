@@ -482,14 +482,13 @@ export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
      }
    }
  
-   await addViewAsync(dbName, consts.toDoc, dbViews[consts.toDoc])
-   await addViewAsync(dbName, consts.fromDoc, dbViews[consts.fromDoc])
-
-   if(configuration.BlocksViewSupported) {
+   if(configuration.FilterInMemory) {
+    await addViewAsync(dbName, consts.toDoc, dbViews[consts.toDoc])
+    await addViewAsync(dbName, consts.fromDoc, dbViews[consts.fromDoc])    
+  } else {
     await addViewAsync(dbName, consts.fromDocBlocks, dbViews[consts.fromDocBlocks])
-    await addViewAsync(dbName, consts.toDocBlocks, dbViews[consts.toDocBlocks])
+    await addViewAsync(dbName, consts.toDocBlocks, dbViews[consts.toDocBlocks])    
   }
-   
  }
  
  async function addViewAsync (dbName: string, viewName: string, view: any) : Promise<void> {

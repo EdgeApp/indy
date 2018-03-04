@@ -15,7 +15,7 @@ export class Config {
   get DBUrl (): string { return this._dBUrl }
   set DBUrl (dbUrl: string) { this._dBUrl = dbUrl }
 
-  get BlocksViewSupported   () : boolean {return consts.blockViewsSupported}
+  get FilterInMemory   () : boolean {return consts.filterInMemory}
  }
 
 export const configuration = new Config()
