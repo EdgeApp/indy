@@ -30,6 +30,8 @@ export async function getAccountTransactionsBlockRangeMemoryAllDBsAsync (account
   // sort
   // slice if limit reached and return
   // if not reached, continue to next DB
+
+  // TODO - not working good with limit!
   let result = []
   for (let index = 0; index < DB.length; index++) {
     const dbName = DB[index]
