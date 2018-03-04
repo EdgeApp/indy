@@ -171,7 +171,7 @@ echo "deb https://apache.bintray.com/couchdb-deb xenial main" \
 The "xenial" parameter is for ubuntu. For non ubuntu read more here:
 http://docs.couchdb.org/en/2.0.0/install/unix.html
 
-Config couchdb to run with enought open files
+Config couchdb to run with enough open files descriptors to prevent "no DB shards could be opened" errors.
 1. http://docs.couchdb.org/en/stable/maintenance/performance.html#system-resource-limits
 
 2. In couch config 
