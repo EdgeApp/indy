@@ -62,6 +62,9 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
           json: true,
           timeout: 5000
         }) 
+
+        logger.info(`Number of account results from liveblocks: ${result.length}`)      
+        
         // add the results to "result" array after filtering and limiting
         filterAndUpdateTransactionConfirmations(reqRes.result, startBlock, endBlock, limit, result, highestBlockNumber)
         liveBlocks = true        

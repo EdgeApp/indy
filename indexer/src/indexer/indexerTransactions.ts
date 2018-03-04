@@ -103,7 +103,6 @@ export class IndexerTransactions {
     let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks    
     if (this.indexSetttings.startBlock >= this.indexSetttings.endBlock ||
         this.indexSetttings.lastBlock > this.indexSetttings.endBlock ||   
-        this.indexSetttings.endBlock > highestBlockNumberToIndex ||           
         this.indexSetttings.startBlock < 0 ||
         this.indexSetttings.endBlock < 0 ||
         this.indexSetttings.lastBlock < 0) {

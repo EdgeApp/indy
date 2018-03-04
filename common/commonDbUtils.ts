@@ -323,6 +323,19 @@ async function getAccountTransactionsBlockRangeAsync (db: any, doc: string, view
 // ***************
 // DB utils
 // ***************
+export async function initAllDBS (limit: number) {
+  let dBList = await getAllPossibleDBRanges(limit)
+  for (let index = 0; index < dBList.length; index++) {
+    let element = dBList[index]
+    let dbName = makeDBName(element)
+    await createDbAndViews(dbName)    
+  }
+}
+
+function makeDBName(element: any) {
+  return 'supernodedb-' + element.start.toString() + '-' + element.end.toString()
+}
+
 export async function initDB (DBName : string) {
   return new Promise((resolve, reject) => {
     logger.info(`getting database ${DBName}`)
@@ -350,30 +363,69 @@ export async function createDbAndViews(dbName: string) {
   await addViewsAsync(dbName)
 }
 
-export function calcDBNameForBlockRange(startBlock) : string {
+export async function calcDBNameForBlockRange(block) : Promise<string> {
+  let allPossibleDBRanges = await getAllPossibleDBRanges(block)
   let dbName: string
-  for (let index = 0; index < 999999999; index += 100000) {
-    if(startBlock >= index && startBlock < index + 100000 ){
-      dbName = 'supernodedb-' + index.toString() + '-' + (index + 100000 - 1).toString()
+
+  for (let index = 0; index < allPossibleDBRanges.length; index++) {
+    let element = allPossibleDBRanges[index]
+    if(block >= element.start && block < element.end) {
+      dbName = makeDBName(element)
+      logger.info(`calcDBNameForBlockRange dbName: ${dbName} for block ${block}`)
+      return dbName
+    }
+  }  
+  logger.error(`calcDBNameForBlockRange didn't find DB name for block ${block}`)
+  throw (new Error(`calcDBNameForBlockRange didn't find DB name for block ${block}`))    
+ }
+
+ export async function getAllPossibleDBRanges(limit: number) : Promise<Array<any>>{
+  let allPossibleDBRanges = []   
+  for (let range = 0; range < limit; range += 100000) {
+    allPossibleDBRanges.push({ start: range, end: range + 100000 - 1 })
+  }
+  return allPossibleDBRanges
+}
+
+ export async function calcDBNameListForBlockRangeFetch(startBlock: number, endBlock: number) : Promise<Array<string>> {
+  let allPossibleDBRanges = await getAllPossibleDBRanges(endBlock)
+
+  let rangeStartIndex = -1
+  for (let index = 0; index < allPossibleDBRanges.length; index++) {
+    let element = allPossibleDBRanges[index]
+    if(startBlock >= element.start && startBlock < element.end) {
+      rangeStartIndex = index
       break
     }
   }
-  return dbName
- }
 
- export async function calcDBNameListForBlockRangeFetch(startBlock: number, endBlock: number) : Promise<Array<string>> {
-  let indexerSettings = await getIndexerSettingsAsync('settingsid')
-  let dbNameList = []
-  for (let index = 0; index < 999999999 && index < indexerSettings.lastBlock ; index += 100000) {
-    let indexLimited = index + 100000 <= indexerSettings.lastBlock ? index + 100000 : indexerSettings.lastBlock
-    if(startBlock >= index && startBlock < (index + 100000) || 
-      index > startBlock && endBlock > indexLimited){
-      dbNameList.push('supernodedb-' + index.toString() + '-' + (index + 100000 - 1).toString())
+  let rangeEndIndex = -1
+  for (let index = 0; index < allPossibleDBRanges.length; index++) {
+    let element = allPossibleDBRanges[index]
+    if(endBlock >= element.start && endBlock < element.end) {
+      rangeEndIndex = index
+      break
     }
-    //if(endBlock >= index && endBlock < index + 100000){    
+  }  
+  
+  if(rangeStartIndex == -1 || rangeEndIndex == -1) {
+    logger.error(`Error in calcDBNameListForBlockRangeFetch, startBlock: ${startBlock} endBlock: ${endBlock}, abort`)
+    throw (new Error('Error in calcDBNameListForBlockRangeFetch, abort!'))    
   }
+
+  let dbNameList = []
+  for (let index = 0; index < allPossibleDBRanges.length; index++) {
+    let element = allPossibleDBRanges[index]
+    if(index >= rangeStartIndex && index <= rangeEndIndex) {
+      let dbName = makeDBName(element)
+      logger.info(`calcDBNameListForBlockRangeFetch DB name added to list, dbName: ${dbName}`)
+      dbNameList.push(dbName)    
+    }
+  }  
   return dbNameList
  }
+
+
 
   // indexer settings functions
 export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
@@ -476,28 +528,28 @@ export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
 
 // get account by FROM view
 export async function refreshAccountFromBlocksTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
-  let dbName = calcDBNameForBlockRange(endBlock)
+  let dbName = await calcDBNameForBlockRange(endBlock)
   logger.info(`getAccountFromTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
   return getAccountTransactionsAsync(dbName, consts.fromDocBlocks, consts.fixedViewName, account, limitTransactions)
 }
 
 // get account by TO view
 export async function refreshAccountToBlocksTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
-  let dbName = calcDBNameForBlockRange(endBlock)
+  let dbName = await calcDBNameForBlockRange(endBlock)
   logger.info(`getAccountToTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
   return getAccountTransactionsAsync(dbName, consts.toDocBlocks, consts.fixedViewName, account, limitTransactions)
 }
 
 // get account by FROM view
 export async function refreshAccountFromTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
-  let dbName = calcDBNameForBlockRange(endBlock)
+  let dbName = await calcDBNameForBlockRange(endBlock)
   logger.info(`getAccountFromTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
   return getAccountTransactionsAsync(dbName, consts.fromDoc, consts.fixedViewName, account, limitTransactions)
 }
 
 // get account by TO view
 export async function refreshAccountToTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
-  let dbName = calcDBNameForBlockRange(endBlock)
+  let dbName = await calcDBNameForBlockRange(endBlock)
   logger.info(`getAccountToTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
   return getAccountTransactionsAsync(dbName, consts.toDoc, consts.fixedViewName, account, limitTransactions)
 }

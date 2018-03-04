@@ -13,7 +13,7 @@ var currentDbName = null
 export async function saveTransactionsBulkAsync (transactions: Array<Transaction>, startBlock: number, endBlock: number) : Promise<void> {
   let totalStartTime = process.hrtime()
   logger.info(`saving ${transactions.length} transactions`)
-  let dbName = commonDbUtils.calcDBNameForBlockRange(startBlock)
+  let dbName = await commonDbUtils.calcDBNameForBlockRange(startBlock)
   if(currentDbName != dbName) {
     await commonDbUtils.createDbAndViews(dbName)
     currentDbName = dbName
