@@ -70,6 +70,8 @@ export class Config {
   get LogTimeStampConsole (): boolean { return consts.logTimeStampConsole }
   get MaxEphemeralForkBlocks (): number { return consts.maxEphemeralForkBlocks }
   get FilterInMemory (): boolean { return consts.filterInMemory}
+  get FilterInDB (): boolean { return consts.filterInDB}
+  
  }
 
 export const configuration = new Config()

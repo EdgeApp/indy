@@ -443,82 +443,84 @@ export async function getIndexerSettingsAsync (indexerID) : Promise<any> {
   })
 }
 
- // decalre emit so ts will compile
- //declare function emit(key: any, value: any): void
- declare function emit(key: any, doc: any): void
+// decalre emit so ts will compile
+//declare function emit(key: any, value: any): void
+declare function emit(key: any, doc: any): void
 
- export async function addViewsAsync (dbName: string) : Promise<void> {
-   let dbViews = { }
-   dbViews[consts.toDoc] =
-   {
-     map: function (doc) {
-       if (doc.to) {
-         emit(doc.to, null)
-       }
-     }
-   }
-   dbViews[consts.fromDoc] =
-   {
-     map: function (doc) {
-       if (doc.from) {
-         emit(doc.from, null)
-       }
-     }
-   }
-   dbViews[consts.fromDocBlocks] =
-   {
-     map: function (doc) {
-       if (doc.from) {
-         emit([doc.from, doc.blockNumber], null)
-       }
-     }
-   }
-   dbViews[consts.toDocBlocks] =
-   {
-     map: function (doc) {
-       if (doc.to) {
-         emit([doc.to, doc.blockNumber], null)
-       }
-     }
-   }
- 
-   if(configuration.FilterInMemory) {
-    await addViewAsync(dbName, consts.toDoc, dbViews[consts.toDoc])
-    await addViewAsync(dbName, consts.fromDoc, dbViews[consts.fromDoc])    
-  } else {
+export async function addViewsAsync (dbName: string) : Promise<void> {
+  let dbViews = { }
+  dbViews[consts.toDoc] =
+  {
+    map: function (doc) {
+      if (doc.to) {
+        emit(doc.to, null)
+      }
+    }
+  }
+  dbViews[consts.fromDoc] =
+  {
+    map: function (doc) {
+      if (doc.from) {
+        emit(doc.from, null)
+      }
+    }
+  }
+  dbViews[consts.fromDocBlocks] =
+  {
+    map: function (doc) {
+      if (doc.from) {
+        emit([doc.from, doc.blockNumber], null)
+      }
+    }
+  }
+  dbViews[consts.toDocBlocks] =
+  {
+    map: function (doc) {
+      if (doc.to) {
+        emit([doc.to, doc.blockNumber], null)
+      }
+    }
+  }
+
+  if(configuration.FilterInMemory) {
+  await addViewAsync(dbName, consts.toDoc, dbViews[consts.toDoc])
+  await addViewAsync(dbName, consts.fromDoc, dbViews[consts.fromDoc])  
+  }  
+  
+  if(configuration.FilterInDB) {
     await addViewAsync(dbName, consts.fromDocBlocks, dbViews[consts.fromDocBlocks])
     await addViewAsync(dbName, consts.toDocBlocks, dbViews[consts.toDocBlocks])    
   }
- }
+}
  
- async function addViewAsync (dbName: string, viewName: string, view: any) : Promise<void> {
-   let db = dbHandler.use(dbName)
-   let designDocName = '_design/' + viewName
- 
-   let ddoc = {
-     language: 'javascript',
-     views: {[consts.fixedViewName]: view}
-   }
- 
-   return new Promise<void>((resolve, reject) => {
-     db.get(designDocName, function (error, existing) {
-       if (!error) {
-         logger.info(`DB design doc view ${designDocName} exist, no update, only adding allowed.`)
-         resolve()
-       } else {
-         db.insert(ddoc, designDocName, function (error, response) {
-           if (!error) {
-             logger.info(`DB doc view ${designDocName} created`)
-             resolve()
-           } else {
-             logger.log('error', `error creating doc view ${designDocName}`)
-             reject(new Error(`error creating doc view ${designDocName}`))
-           }
-         })
-       }
-     })
-   })
- }
+async function addViewAsync (dbName: string, viewName: string, view: any) : Promise<void> {
+  let db = dbHandler.use(dbName)
+  let designDocName = '_design/' + viewName
+
+  let ddoc = {
+    language: 'javascript',
+    views: {[consts.fixedViewName]: view}
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    db.get(designDocName, function (error, existing) {
+      if (!error) {
+        logger.info(`DB design doc view ${designDocName} exist, no update, only adding allowed.`)
+        resolve()
+      } else {
+        db.insert(ddoc, designDocName, function (error, response) {
+          if (!error) {
+            logger.info(`DB doc view ${designDocName} created`)
+            resolve()
+          } else {
+            logger.log('error', `error creating doc view ${designDocName}`)
+            reject(new Error(`error creating doc view ${designDocName}`))
+          }
+        })
+      }
+    })
+  })
+}
 
 
 // **************************************************************************************

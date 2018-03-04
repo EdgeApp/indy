@@ -18,6 +18,10 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
 
     let totalStartTimeAccount = process.hrtime()
     
+    // for performance messure only
+    let filterInMemoryElapsedSeconds
+    let filterDBElapsedSeconds    
+    
     // highest block to calc confirmations
     let highestBlock = await web3.eth.getBlock('pending')
     let highestBlockNumber = highestBlock.number
@@ -76,7 +80,6 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
     // if live didn't fill the limit, lets take more 
     let leftLimit = limit - result.length
 
-
     if (accountQuery == commonDbUtils.AccountQuery.ALL && leftLimit > 0) {
       // performe "from" query, limit results with "leftLimit"
       // add the results to "result" array after filtering and limiting      
@@ -87,13 +90,17 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
         let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
         result = result.concat(resultAll)      
         logger.info(`Filter in memory, elpased time in sec: ${totalElapsedSecondsBlocks}`)
-      } else {
+        filterInMemoryElapsedSeconds =   totalElapsedSecondsBlocks      
+      } 
+      
+      if(configuration.FilterInDB) {
         //Filter in DB
         let startTimeBlocks = process.hrtime()
         let resultAllDBfilter = await fetchAccountBlockRangeFromDB(req.params.address, startBlock, endBlock, leftLimit, highestBlockNumber, commonDbUtils.AccountQuery.ALL)
         result = result.concat(resultAllDBfilter)      
         let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
-        logger.info(`Filter in DB, elpased time in sec: ${totalElapsedSecondsBlocks}`)      
+        logger.info(`Filter in DB, elpased time in sec: ${totalElapsedSecondsBlocks}`)   
+        filterDBElapsedSeconds = totalElapsedSecondsBlocks
       }
     }
 
@@ -107,7 +114,9 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
         let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
         logger.info(`Filter in memory, elpased time in sec: ${totalElapsedSecondsBlocks}`)
         result = result.concat(resultFrom)
-      } else {
+      } 
+
+      if(configuration.FilterInDB) {
         // Filter in DB
         let startTimeBlocks = process.hrtime()
         let resultFromDBFilter = await fetchAccountBlockRangeFromDB(req.params.address, startBlock, endBlock, leftLimit, highestBlockNumber, commonDbUtils.AccountQuery.FROM)
@@ -127,7 +136,9 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
         let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
         logger.info(`Filter in memory, elpased time in sec: ${totalElapsedSecondsBlocks}`)
         result = result.concat(resultTo)
-      } else {
+      } 
+
+      if(configuration.FilterInDB) {
         // Filter in DB
         let startTimeBlocks = process.hrtime()
         let resultToDBFilter = await fetchAccountBlockRangeFromDB(req.params.address, startBlock, endBlock, leftLimit, highestBlockNumber, commonDbUtils.AccountQuery.TO)
@@ -148,6 +159,8 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
         'count': result.length,
         'includeLiveBlocks': liveBlocks, 
         'totalElapsedSeconds': totalElapsedSecondsAccount,
+//        'filterInMemoryElapsedSeconds': filterInMemoryElapsedSeconds,
+//        'filterDBElapsedSeconds':  filterDBElapsedSeconds,
         'result': result
       })
   } catch (error) {

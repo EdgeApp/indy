@@ -66,6 +66,8 @@ export class Config {
   get LogFileName (): string { return consts.restLogFileName }
   get MaxEphemeralForkBlocks (): number { return consts.maxEphemeralForkBlocks }
   get FilterInMemory (): boolean { return consts.filterInMemory} 
+  get FilterInDB (): boolean { return consts.filterInDB} 
+  
 }
 
 export const configuration = new Config()

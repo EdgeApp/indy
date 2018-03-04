@@ -31,5 +31,7 @@ export const restLogFileName = 'supernode-rest.log'
 export const logTimeStampConsole = true
 export const maxEphemeralForkBlocks = 12
 export const filterInMemory = false
+export const filterInDB = true
+
 
 

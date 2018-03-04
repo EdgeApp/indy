@@ -16,6 +16,8 @@ export class Config {
   set DBUrl (dbUrl: string) { this._dBUrl = dbUrl }
 
   get FilterInMemory   () : boolean {return consts.filterInMemory}
+  get FilterInDB   () : boolean {return consts.filterInDB}
+  
  }
 
 export const configuration = new Config()
