@@ -15,6 +15,9 @@ const router = express.Router()
 // return all transactions history for account address
 router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) => {
   try {
+
+    let totalStartTimeAccount = process.hrtime()
+    
     // highest block to calc confirmations
     let highestBlock = await web3.eth.getBlock('pending')
     let highestBlockNumber = highestBlock.number
@@ -76,7 +79,7 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
       // add the results to "result" array after filtering and limiting      
       let startTimeBlocks = process.hrtime()
       
-      let resultAll = await commonDbUtils.getAccountTransactionsBlockRangeMemoryAllDBsAsync (req.params.address, startBlock, highestBlockNumber, commonDbUtils.AccountQuery.ALL, leftLimit)         
+      let resultAll = await commonDbUtils.getAccountTransactionsBlockRangeMemoryAllDBsAsync (req.params.address, startBlock, endBlock, commonDbUtils.AccountQuery.ALL, leftLimit)         
       updateTransactonConfirmations(resultAll, highestBlockNumber)
       let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
       result = result.concat(resultAll)      
@@ -93,7 +96,7 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
       // performe "from" query, limit results with "leftLimit"
       // add the results to "result" array after filtering and limiting      
       let startTimeBlocks = process.hrtime()
-      let resultFrom = await commonDbUtils.getAccountTransactionsBlockRangeMemoryAllDBsAsync (req.params.address, startBlock, highestBlockNumber, commonDbUtils.AccountQuery.FROM, leftLimit)         
+      let resultFrom = await commonDbUtils.getAccountTransactionsBlockRangeMemoryAllDBsAsync (req.params.address, startBlock, endBlock, commonDbUtils.AccountQuery.FROM, leftLimit)         
       updateTransactonConfirmations(resultFrom, highestBlockNumber)
       let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
       logger.info(`Filter in memory, elpased time in sec: ${totalElapsedSecondsBlocks}`)
@@ -110,7 +113,7 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
       // performe "to" query, limit results with "leftLimit"      
       // add the results to "result" array after filtering and limiting 
       let startTimeBlocks = process.hrtime()
-      let resultTo = await commonDbUtils.getAccountTransactionsBlockRangeMemoryAllDBsAsync (req.params.address, startBlock, highestBlockNumber, commonDbUtils.AccountQuery.TO, leftLimit)         
+      let resultTo = await commonDbUtils.getAccountTransactionsBlockRangeMemoryAllDBsAsync (req.params.address, startBlock, endBlock, commonDbUtils.AccountQuery.TO, leftLimit)         
       updateTransactonConfirmations(resultTo, highestBlockNumber)
       let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
       logger.info(`Filter in memory, elpased time in sec: ${totalElapsedSecondsBlocks}`)
@@ -123,12 +126,17 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
       // logger.info(`Filter in DB, elpased time in sec: ${totalElapsedSecondsBlocks2}`)          
     }
 
+    let totalElapsedSecondsAccount = utils.parseHrtimeToSeconds(process.hrtime(totalStartTimeAccount))
+    logger.info(`Total account query, elpased time in sec: ${totalElapsedSecondsAccount}`)
+    
+    
     return res.json(
       {
         'status': 1,
         'message': 'OK',
         'count': result.length,
-        'includeLiveBlocks' : liveBlocks, 
+        'includeLiveBlocks': liveBlocks, 
+        'totalElapsedSeconds': totalElapsedSecondsAccount,
         'result': result
       })
   } catch (error) {
