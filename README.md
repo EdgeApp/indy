@@ -180,12 +180,6 @@ http://127.0.0.1:5984/_utils/#_config/couchdb@127.0.0.1
 ```
 max_dbs_open = 15000
 ```
-add 
-```
-[couchdb]
-update_lru_on_read = false
-```
-
 3. add /etc/systemd/system/couchdb.service.d/limits.conf file with the value 
 ```
 [Service]
