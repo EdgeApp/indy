@@ -163,9 +163,9 @@ bash <(curl https://get.parity.io -Lk) -r stable
 
 ### Install Couchdb
 Install couchdb. Make sure to create admin user on installation.
-```
+
 http://docs.couchdb.org/en/stable/install/unix.html
-```
+
 Config couchdb to run with enough open files descriptors to prevent "no DB shards could be opened" errors.
 1. http://docs.couchdb.org/en/stable/maintenance/performance.html#system-resource-limits
 
