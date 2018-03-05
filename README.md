@@ -163,14 +163,9 @@ bash <(curl https://get.parity.io -Lk) -r stable
 
 ### Install Couchdb
 Install couchdb. Make sure to create admin user on installation.
-
 ```
-echo "deb https://apache.bintray.com/couchdb-deb xenial main" \
-    | sudo tee -a /etc/apt/sources.list
+http://docs.couchdb.org/en/stable/install/unix.html
 ```
-The "xenial" parameter is for ubuntu. For non ubuntu read more here:
-http://docs.couchdb.org/en/2.0.0/install/unix.html
-
 Config couchdb to run with enough open files descriptors to prevent "no DB shards could be opened" errors.
 1. http://docs.couchdb.org/en/stable/maintenance/performance.html#system-resource-limits
 
