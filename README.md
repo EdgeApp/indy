@@ -154,7 +154,7 @@ If indexer module is not available, then the last 12 live blocks are not include
 # Getting Started
 
 ### Install nodejs (v 9.0+) and npm (v 5.3+)
-    https://nodejs.org/en/download/
+https://nodejs.org/en/download/
 
 ### Install Parity 
 ``` 
