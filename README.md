@@ -190,12 +190,12 @@ Config couchdb to run with enough open files descriptors to prevent "no DB shard
 
 	```
 	max_dbs_open = 15000
-```
+	```
 3. add /etc/systemd/system/couchdb.service.d/limits.conf file with the value 
-```
-[Service]
-LimitNOFILE=64000
-```
+	```
+	[Service]
+	LimitNOFILE=64000
+	```
 4. Make sure to change couchdb folders to your datadisk - inside /opt/couchdb/etc/default.ini or local.ini.
 
 *note that deault.ini will be override on couchdb upgrade.
