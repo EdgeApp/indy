@@ -199,13 +199,14 @@ Config couchdb to run with enough open files descriptors to prevent "no DB shard
 4. Make sure to change couchdb folders to your datadisk - inside /opt/couchdb/etc/default.ini or local.ini.
 
 	*note that deault.ini will be override on couchdb upgrade.
-
+	```
 	[couchdb]
 	database_dir = /datadisk/couchdb/data
-
+	```
+	```
 	[couchdb]
 	view_index_dir = /datadisk/couchdb/data
-
+	```
 	You can also do what by adding the values using managemnt (make sure to opne 5984 port)
 
 	ssh -L5984:127.0.0.1:5984 [username]@yourserverip.
