@@ -350,6 +350,7 @@ export async function initDB (DBName : string) {
             logger.info(`database ${DBName} created!`)
             resolve()
           } else {
+            logger.error(err)
             reject(new Error((`error creating database ${DBName}`)))
           }
         })
@@ -381,7 +382,7 @@ export async function calcDBNameForBlockRange(block) : Promise<string> {
 
  export async function getAllPossibleDBRanges(limit: number) : Promise<Array<any>>{
   let allPossibleDBRanges = []   
-  for (let range = 0; range < limit; range += 100000) {
+  for (let range = 0; range <= limit; range += 100000) {
     allPossibleDBRanges.push({ start: range, end: range + 100000 - 1 })
   }
   return allPossibleDBRanges

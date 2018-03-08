@@ -9,9 +9,11 @@ router.get('/liveBlocks/:address/:fromto', async (req, res, next) => {
     let liveTransactions = indexderLive.liveBlocksTransactionsMap
     let filterAddress = req.params.address
     
-    let isAll = req.params.fromto == 'account'
+    let isAccount = req.params.fromto == 'account'
     let isTo = req.params.fromto == 'to'
-    let isFrom = req.params.fromto == 'from'    
+    let isFrom = req.params.fromto == 'from'   
+    let isAll = req.params.fromto == 'all'    
+     
     
     logger.info(`req.params.address ${req.params.address}`)
     logger.info(`filterAddress ${filterAddress}`)
@@ -27,17 +29,24 @@ router.get('/liveBlocks/:address/:fromto', async (req, res, next) => {
     let resTransactions = []
     liveTransactions.forEach(function (value, key, mapObj) {
       if (filterAddress) {
-        if(isAll || isFrom) {
+        if(isAccount || isFrom) {
           let fromTransactions = value.transactions.filter((t) => t.from === filterAddress)
           resTransactions = resTransactions.concat(fromTransactions)
         }
-        if(isAll || isTo) {
+        if(isAccount || isTo) {
           let toTransactions = value.transactions.filter((t) => (t.to === filterAddress || t.contractAddress == filterAddress))
           resTransactions = resTransactions.concat(toTransactions)
         }
       }
     })
 
+    if(isAll) {
+      resTransactions = liveTransactions
+    }
+
+
+    logger.info(`Number of account results from liveblocks: ${resTransactions.length}`)      
+    
     return res.json(
       {
         'status': 1,

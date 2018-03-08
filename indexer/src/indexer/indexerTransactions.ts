@@ -101,7 +101,7 @@ export class IndexerTransactions {
   private async validateIndexSettings() : Promise<void> {
     let highestBlock = await this.web3.eth.getBlock('pending')
     let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks    
-    if (this.indexSetttings.startBlock >= this.indexSetttings.endBlock ||
+    if (this.indexSetttings.startBlock > this.indexSetttings.endBlock ||
         this.indexSetttings.lastBlock > this.indexSetttings.endBlock ||   
         this.indexSetttings.startBlock < 0 ||
         this.indexSetttings.endBlock < 0 ||
