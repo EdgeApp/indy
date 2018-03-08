@@ -156,6 +156,9 @@ If indexer module is not available, then the last 12 live blocks are not include
 ### Install nodejs (v 9.0+) and npm (v 5.3+)
 https://nodejs.org/en/download/package-manager/
 
+* make sure to install build tools.
+
+
 ### Install Parity 
 ``` 
 bash <(curl https://get.parity.io -Lk) 
@@ -173,20 +176,20 @@ Config couchdb to run with enough open files descriptors to prevent "no DB shard
 
 2. In couch config local or remote
 
-local db:
-http://127.0.0.1:5984/_utils
+	local db:
+	http://127.0.0.1:5984/_utils
 
-remote db:
-http://127.0.0.1:5984/_utils/#_config/couchdb@127.0.0.1
+	remote db:
+	http://127.0.0.1:5984/_utils/#_config/couchdb@127.0.0.1
 
-ssh -L5984:127.0.0.1:5984 [username]@yourserverip.
+	ssh -L5984:127.0.0.1:5984 [username]@yourserverip.
 
-Then in your broswer:
+	Then in your broswer:
 
-http://localhost:5984/_utils/#_config/couchdb@127.0.0.1
+	http://localhost:5984/_utils/#_config/couchdb@127.0.0.1
 
-```
-max_dbs_open = 15000
+	```
+	max_dbs_open = 15000
 ```
 3. add /etc/systemd/system/couchdb.service.d/limits.conf file with the value 
 ```
@@ -197,19 +200,19 @@ LimitNOFILE=64000
 
 *note that deault.ini will be override on couchdb upgrade.
 
-[couchdb]
-database_dir = /datadisk/couchdb/data
+	[couchdb]
+	database_dir = /datadisk/couchdb/data
 
-[couchdb]
-view_index_dir = /datadisk/couchdb/data
+	[couchdb]
+	view_index_dir = /datadisk/couchdb/data
 
-You can also do what by adding the values using managemnt (make sure to opne 5984 port)
+	You can also do what by adding the values using managemnt (make sure to opne 5984 port)
 
-ssh -L5984:127.0.0.1:5984 [username]@yourserverip.
+	ssh -L5984:127.0.0.1:5984 [username]@yourserverip.
 
-Then in your broswer:
+	Then in your broswer:
 
-http://localhost:5984/_utils/#_config/couchdb@127.0.0.1
+	http://localhost:5984/_utils/#_config/couchdb@127.0.0.1
 
 
 5. Make sure to give couchdb permissions to write your dirs - it will not work without it.
