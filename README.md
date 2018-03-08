@@ -188,6 +188,10 @@ Config couchdb to run with enough open files descriptors to prevent "no DB shard
 	```
 	max_dbs_open = 15000
 	```
+	Increase limits as described here:
+	
+	https://superuser.com/questions/1200539/cannot-increase-open-file-limit-past-4096-ubuntu
+	
 3. add /etc/systemd/system/couchdb.service.d/limits.conf file with the value 
 	```
 	[Service]
