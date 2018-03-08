@@ -198,7 +198,7 @@ Config couchdb to run with enough open files descriptors to prevent "no DB shard
 	```
 4. Make sure to change couchdb folders to your datadisk - inside /opt/couchdb/etc/default.ini or local.ini.
 
-*note that deault.ini will be override on couchdb upgrade.
+	*note that deault.ini will be override on couchdb upgrade.
 
 	[couchdb]
 	database_dir = /datadisk/couchdb/data
