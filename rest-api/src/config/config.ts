@@ -17,7 +17,7 @@ export class Config {
   _indexerUrl : string
 
   constructor () {
-    this._ipcPath = process.env['HOME'] + consts.ipcPath
+    this._ipcPath = consts.ipcPath
     this._ipcProvider = new web3.providers.IpcProvider(this._ipcPath, net)
     this._provider = new web3.providers.HttpProvider(consts.httpProvider)
     this._port = consts.restPort
