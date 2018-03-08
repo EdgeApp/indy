@@ -169,7 +169,6 @@ Install couchdb. Make sure to create admin user on installation.
 
 http://docs.couchdb.org/en/stable/install/unix.html
 
-https://tanzimsaqib.wordpress.com/2015/06/12/installing-couchdb-manually-on-ubuntuazure/
 
 Config couchdb to run with enough open files descriptors to prevent "no DB shards could be opened" errors.
 1. http://docs.couchdb.org/en/stable/maintenance/performance.html#system-resource-limits
@@ -180,8 +179,6 @@ Config couchdb to run with enough open files descriptors to prevent "no DB shard
 	http://127.0.0.1:5984/_utils
 
 	remote db:
-	http://127.0.0.1:5984/_utils/#_config/couchdb@127.0.0.1
-
 	ssh -L5984:127.0.0.1:5984 [username]@yourserverip.
 
 	Then in your broswer:
