@@ -154,22 +154,19 @@ If indexer module is not available, then the last 12 live blocks are not include
 # Getting Started
 
 ### Install nodejs (v 9.0+) and npm (v 5.3+)
-    https://nodejs.org/en/download/
+https://nodejs.org/en/download/package-manager/
 
 ### Install Parity 
 ``` 
-bash <(curl https://get.parity.io -Lk) -r stable 
+bash <(curl https://get.parity.io -Lk) 
 ```
 
 ### Install Couchdb
 Install couchdb. Make sure to create admin user on installation.
 
-```
-echo "deb https://apache.bintray.com/couchdb-deb xenial main" \
-    | sudo tee -a /etc/apt/sources.list
-```
-The "xenial" parameter is for ubuntu. For non ubuntu read more here:
-http://docs.couchdb.org/en/2.0.0/install/unix.html
+http://docs.couchdb.org/en/stable/install/unix.html
+
+https://tanzimsaqib.wordpress.com/2015/06/12/installing-couchdb-manually-on-ubuntuazure/
 
 Config couchdb to run with enough open files descriptors to prevent "no DB shards could be opened" errors.
 1. http://docs.couchdb.org/en/stable/maintenance/performance.html#system-resource-limits
