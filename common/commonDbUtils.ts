@@ -370,7 +370,7 @@ export async function calcDBNameForBlockRange(block) : Promise<string> {
 
   for (let index = 0; index < allPossibleDBRanges.length; index++) {
     let element = allPossibleDBRanges[index]
-    if(block >= element.start && block < element.end) {
+    if(block >= element.start && block <= element.end) {
       dbName = makeDBName(element)
       logger.info(`calcDBNameForBlockRange dbName: ${dbName} for block ${block}`)
       return dbName
