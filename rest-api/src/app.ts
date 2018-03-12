@@ -1,9 +1,13 @@
 import * as applicationRoutes from './bootstrap/routes'
 import * as express from 'express'
+import * as http from 'http'
+import * as https from 'https'
+import * as fs from 'fs'
 import * as logging from './bootstrap/logging'
 import * as logger from 'winston'
 import * as db from './bootstrap/db'
 import * as yargs from 'yargs'
+import * as consts from './../../common/consts'
 import {configuration} from './config/config'
 
 let app = express()
@@ -22,4 +26,22 @@ app.set('config', configuration)
 
 db.initDB()
 
-app.listen(configuration.Port, () => logger.info(`super node indexer listening on port ${configuration.Port}!`))
+if(consts.useSsl) {
+  var options = {
+    key: fs.readFileSync(consts.sslKey),
+    cert: fs.readFileSync(consts.sslCert)
+  }
+    https.createServer(options, app).listen(configuration.Port, function() {
+      logger.info(`super node indexer listening on port ${configuration.Port}!`)
+  })  
+} else {
+    http.createServer(app).listen(configuration.Port, function(){
+      logger.info(`super node indexer listening on port ${configuration.Port}!`)
+  })
+}
+
+
+
+
+
+

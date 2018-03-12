@@ -19,8 +19,8 @@ export const dBUrl = 'http://admin:123456@localhost:5984'
 export const indexerPort = 3001
 export const restPort = 3000
 
-export const  dropsDBName = 'supernodedropsdb' 
-export const  settingDBName = 'supernodesettingsdb' 
+export const  dropsDBName = 'configsupernodedropsdb' 
+export const  settingDBName = 'configsupernodesettingsdb' 
 
 export const blockReqeusts = 100 // parity parallel block requests. can't be larger than blockstep.
 export const blockStep = 1000 // number of items to save to db in one time . be carefull in non bulk mode. can't be larger than chunksize
@@ -33,5 +33,6 @@ export const maxEphemeralForkBlocks = 12
 export const filterInMemory = false
 export const filterInDB = true
 
-
-
+export const useSsl = false
+export const sslKey = '/home/adys/Sources/ether-super-node/rest-api/src/encryption/supernode.key'
+export const sslCert = '/home/adys/Sources/ether-super-node/rest-api/src/encryption/supernode.crt'
