@@ -1,0 +1,33 @@
+[parity]
+base_path = "/datadrive/parity/data/io.parity.ethereum"
+db_path = "/datadrive/parity/data/io.parity.ethereum/chains"
+keys_path = "/datadrive/parity/data/io.parity.ethereum/keys"
+
+
+[ui]
+
+path = "/datadrive/parity/data/io.parity.ethereum/signer"
+
+[network]
+warp = false # we are working in no-warp mode
+
+[ipc]
+disable = false
+path = "/datadrive/parity/data/io.parity.ethereum/jsonrpc.ipc"
+apis = ["web3", "eth", "net", "parity", "parity_accounts", "personal", "traces", "rpc", "secretstore"]
+
+[dapps]
+path = "/datadrive/parity/data/io.parity.ethereum/dapps"
+
+[secretstore]
+path = "/datadrive/parity/data/io.parity.ethereum/secretstore"
+
+
+[footprint]
+cache_size = 4096 # Overrides above caches with total size
+
+
+[misc]
+logging = "own_tx=trace"
+log_file = "/datadrive/parity/log/parity.log"
+color = true

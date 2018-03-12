@@ -1,0 +1,13 @@
+[unit]
+Description=Parity app
+After=network.target
+
+[Service]
+User=edgy
+ExecStart=/usr/bin/parity --config /datadrive/parity/parityconfig.toml
+TimeoutSec=30
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

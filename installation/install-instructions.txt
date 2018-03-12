@@ -1,0 +1,171 @@
+install instructions
+********************
+
+PARITY
+******
+
+install parity:
+
+bash <(curl https://get.parity.io -Lk) 
+
+create data dir for parity
+
+/datadrive/parity/data/
+/datadrive/parity/log/
+
+add parity config file
+/datadrive/parity/log/parityconfig.toml  *(look at parityconfig.toml example)
+
+make parity to run as service
+
+sudo cp parity.service /etc/systemd/system/parity.service
+sudo systemctl daemon-reload
+sudo systemctl enable parity.service
+sudo systemctl start parity.service
+sudo systemctl status parity.service
+
+to see parity logs
+
+tail -f /var/log/syslog
+
+COUCHDB
+*******
+
+create data direcotry /datadrive/couchdb/data 
+
+install :
+
+echo "deb https://apache.bintray.com/couchdb-deb xenial main" \
+    | sudo tee -a /etc/apt/sources.list
+
+
+curl -L https://couchdb.apache.org/repo/bintray-pubkey.asc \
+    | sudo apt-key add -
+
+
+sudo apt-get update && sudo apt-get install couchdb
+
+*write your admin password
+
+
+Verify the installation:
+curl localhost:5984
+
+
+Update data location
+
+/opt/couchdb/etc/default.ini
+
+[couchdb]
+database_dir = /datadrive/couchdb/data
+view_index_dir = /datadrive/couchdb/data
+
+
+
+create new file
+
+/etc/security/limits.d/100-couchdb.conf
+
+couchdb      hard      nofile    64000
+couchdb      soft      nofile    64000
+root         hard      nofile    64000
+root         soft      nofile    64000
+
+
+
+add the line 
+
+session required pam_limits.so
+
+to files 
+
+/etc/pam.d/common-session
+/etc/pam.d/common-session-noninteractive
+
+
+
+create new file 
+
+/etc/systemd/system/couchdb.service.d/limits.conf 
+
+[Service]
+LimitNOFILE=64000
+
+
+edit file 
+/etc/systemd/user.conf
+DefaultLimitNOFILE=64000
+
+edit file
+/etc/security/limits.conf
+
+*                hard    nofile          64000
+*                soft    nofile          64000
+root             soft    nofile          64000
+root             hard    nofile          64000
+
+
+give couchdb permissions:
+
+chown -R couchdb:couchdb /datadrive/couchdb/data
+
+
+reboot
+
+Verify couch connection:
+curl localhost:5984
+
+
+
+SUPERNODE
+*********
+
+git clone https://github.com/adyshimony/ether-super-node.git
+
+
+node
+
+curl -sL https://deb.nodesource.com/setup_9.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo apt-get install -y build-essential
+
+npm install
+
+edit /datadrive/supernode/ether-super-node/common/consts.ts
+
+export const ipcPath = '/datadrive/parity/data/io.parity.ethereum/jsonrpc.ipc'
+export const dBUrl = 'http://admin:PASSWORD@localhost:5984'
+
+
+npm run build
+npm run start-indexer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
