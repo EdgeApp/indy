@@ -208,7 +208,7 @@ Config couchdb to run with enough open files descriptors to prevent "no DB shard
 	[couchdb]
 	view_index_dir = /datadisk/couchdb/data
 	```
-	You can also do what by adding the values using managemnt (make sure to opne 5984 port)
+	You can also do that by adding the values using managemnt (make sure to opne 5984 port)
 
 	ssh -L5984:127.0.0.1:5984 [username]@yourserverip.
 
