@@ -1,10 +1,12 @@
-# Ethereum Super Node
+# Indy
+
+## An Ethereum Super Node Indexing Server
 
 [![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
 
-Ethereum Super Node is a an Ethereum blockchain Indexer and REST API server, built with NodeJS, Express and Parity. The current DB implementation uses CouchDB. 
+Indy is a an Ethereum blockchain indexer and REST API server, built with NodeJS, Express and Parity. The current DB implementation uses CouchDB.
 
-The indexer is running on the same machine as the Partity, creating a database of transactional data. The data can then be queried using a REST API.
+The indexer is running on the same machine as the Parity, creating a database of transactional data. The data can then be queried using a REST API.
 
 ### REST API
 
