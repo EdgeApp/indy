@@ -128,6 +128,9 @@ export class IndexerTransactions {
         let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
         logger.info(`indexHistory method, ${this.indexSetttings.endBlock - this.indexSetttings.startBlock} blocks, duration in sec: ${elapsedSeconds}`);
         
+        // make sure to do last refresh
+        dbUtils.refreshViews('refreshDummyAccount', this.indexSetttings.endBlock - 1)         
+
         // advance to the next block chunk
         this.indexSetttings.startBlock = this.indexSetttings.endBlock
         this.indexSetttings.endBlock += configuration.BlockChunkSize
@@ -217,8 +220,8 @@ export class IndexerTransactions {
         try {
           await dbUtils.saveTransactionsBulkAsync(transactionsToSave, startBlock, endBlock)
         } catch (error) {
-          logger.log('error', 'saveTransactions - error in dbutils while saving transactions, abort')
-          logger.log('error', error)
+          logger.error('saveTransactions - error in dbutils while saving transactions, abort')
+          logger.error('error', error)
           throw (new Error('saveTransactions - error in dbutils while saving transactions, abort'))
         }
       }
@@ -256,6 +259,8 @@ export class IndexerTransactions {
 
     logger.info(`init startLiveIndexerProcess, fetch all blocks, from ${lastSavedBlock} to ${highestBlock.number}`)
     this.liveBlocksTransactionsMap = await blockchainUtils.getBlockTransactionsMapAsync(lastSavedBlock, highestBlock.number)
+    logger.info(`init startLiveIndexerProcess, all blocks fetche, from ${lastSavedBlock} to ${highestBlock.number}`)
+
 
     let elapsedMapSeconds = utils.parseHrtimeToSeconds(process.hrtime(startMapTime))
     logger.info(`init startLiveIndexerProcess blockchainUtils.getBlockTransactionsMapAsync sec: ${elapsedMapSeconds}`)
@@ -340,8 +345,15 @@ export class IndexerTransactions {
           let blockNumber = changedBlocks[blockIndex].number
           // bring full block
           let blockTransactions = await blockchainUtils.getSingleBlockTransactionsAsync(blockNumber)
-          logger.info(`live updateLiveBlocks update block ${blockNumber}`)
-          this.liveBlocksTransactionsMap.set(blockNumber, {transactions: blockTransactions, blockHash: changedBlocks[blockIndex].hash})
+          if(blockTransactions) {
+            logger.info(`live updateLiveBlocks update block ${blockNumber}`)
+            this.liveBlocksTransactionsMap.set(blockNumber, {transactions: blockTransactions, blockHash: changedBlocks[blockIndex].hash})
+          } else {
+            logger.info(`live updateLiveBlocks getSingleBlockTransactionsAsync for ${blockNumber} fail, removing block from list`)
+            if (this.liveBlocksTransactionsMap.has(blockNumber)) {
+              this.liveBlocksTransactionsMap.delete(blockNumber)            
+            }                      
+          }
         }
       }
     } catch (error) {

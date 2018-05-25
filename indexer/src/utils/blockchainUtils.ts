@@ -38,21 +38,21 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
       // for every block, handle transactions
       let startTimeTransactions = process.hrtime()
       let transactionCount = 0
-      for (let blockIndex = 0; blockIndex < resBlocks.length; blockIndex++) {
+      for (let blockIndex = 0; blockIndex < resBlocks.length;) {
         let block = resBlocks[blockIndex]
         if (block) {
           try {
             let res = await getTransactionsFromBlockAsync(block)
-            transactionCount += res.length
             if (res) {
+              transactionCount += res.length
               transactions = transactions.concat(res)
+              blockIndex++
             }
           } catch (error) {
             // save fail blocks to setttings DB
             let drop = new DropInfo(block, error.message)
             dbUtils.saveDropsInfoAsync(drop)            
             logger.error(error)
-            return null
           }
         }
       }
@@ -88,6 +88,8 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
         maxTimeout: 5000
       })
       return resTransactions
+    } else {
+      logger.error(`getTransactionsFromBlockAsync error fetch block #${block.number} transactions are missing`)
     } 
   } catch (error) {
     dbUtils.saveDropsInfoAsync(new DropInfo(block, 'getTransactionsFromBlockAsync error fetch'))             
@@ -131,9 +133,15 @@ export async function getBlockTransactionsMapAsync (startBlock: number, endBlock
   let blockMap = new SortedMap()
   let startIndex = startBlock
   let transactionCount = 0
+
+  logger.info(`getBlockTransactionsMapAsync, get blocks, from ${startBlock} to ${endBlock}`)
+  
   // for all the block range, include the last block
   while (startIndex <= endBlock) {
     let blocksPromises = []
+
+    logger.info(`getBlockTransactionsMapAsync, wait for promises`)
+    
     // async as BlockReqeusts config size
     for (let index = 0; startIndex <= endBlock && index <= configuration.BlockReqeusts; index++, startIndex++) {
       // fetch full block, include transactions
@@ -141,16 +149,25 @@ export async function getBlockTransactionsMapAsync (startBlock: number, endBlock
     }
     // wait for block result, for each block , get full tranaction info
     let resBlocks = await Promise.all(blocksPromises)
-    for (let blockIndex = 0; blockIndex <= resBlocks.length; blockIndex++) {
+
+    logger.info(`getBlockTransactionsMapAsync, done waiting for promises`)
+    
+    for (let blockIndex = 0; blockIndex < resBlocks.length; ) {
       let block = resBlocks[blockIndex]
       if (block) {
         try {
+          logger.info(`getBlockTransactionsMapAsync, getTransactionsFromBlockAsync, for block ${block.number}`)
           let transactions = await getTransactionsFromBlockAsync(block)
-          blockMap.set(block.number, { transactions: transactions, blockHash: block.hash })
-          transactionCount += transactions.length
+          if(transactions) {
+            logger.info(`getBlockTransactionsMapAsync, update map and advance to next block`)
+            blockMap.set(block.number, { transactions: transactions, blockHash: block.hash })
+            transactionCount += transactions.length
+            blockIndex++
+          } else {
+            logger.error(`getBlockTransactionsMapAsync, transactions not found for block ${block}`)            
+          }
         } catch (error) {
           logger.info(error)
-          return null
         }
       }
     }
@@ -164,6 +181,10 @@ export async function getSingleBlockTransactionsAsync (blockNumber: number): Pro
   try {
     // fetch full block, include transactions
     let resBlock = await web3.eth.getBlock(blockNumber, true)
+    if(!resBlock) {
+      logger.error(`getSingleBlockTransactionsAsync blockNumber ${blockNumber} not exits, perhaps a regorg result?.`)
+      return null
+    }
     let transactions = await getTransactionsFromBlockAsync(resBlock)
     return transactions
   } catch (error) {

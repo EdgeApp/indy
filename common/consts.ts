@@ -32,6 +32,7 @@ export const logTimeStampConsole = true
 export const maxEphemeralForkBlocks = 12
 export const filterInMemory = false
 export const filterInDB = true
+export const liveRefreshDelta = 100
 
 export const useSsl = false
 export const sslKey = '/home/adys/Sources/ether-super-node/rest-api/src/encryption/supernode.key'
