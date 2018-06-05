@@ -9,8 +9,12 @@ export function load (app) {
 
 function setApplicationRoutes (app) {
   logger.info('setApplicationRoutes')
+
   let pendingTxContoller = require('../routes/api/pendingTx')
   app.use('/mempool', pendingTxContoller)
+
+  let latestBlockContoller = require('../routes/api/latestBlock')
+  app.use('/mempool', latestBlockContoller) 
 
   let accountTxContoller = require('../routes/api/accountTx')
   app.use('/account', accountTxContoller)
