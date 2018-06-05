@@ -22,7 +22,7 @@ router.get('/latest', async (req, res, next) => {
 
   if (block) {
     try {
-      result = block.number    
+      result = block.number.toString()    
       message = 'OK'
       status = 1
     } catch (error) {
