@@ -19,7 +19,7 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
 
     // startBlock and endBlock parameters
     let startBlock = req.params.startBlock != undefined ? parseInt(req.params.startBlock) : 0
-    let endBlock = req.params.endBlock != undefined ?parseInt(req.params.endBlock) : 999999999
+    let endBlock = req.params.endBlock != undefined ?parseInt(req.params.endBlock) : highestBlockNumber
     // check start and end block validity
     if (startBlock > endBlock ||
       startBlock < 0) {
@@ -56,7 +56,7 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
     if (leftLimit > 0) {
       // performe get contract query, limit results with "leftLimit"
 
-      let resultFrom = await fetchAccountBlockRangeFromDB(req.params.address, startBlock, endBlock, leftLimit, highestBlockNumber, commonDbUtils.AccountQuery.ALL)
+      let resultFrom = await fetchAccountContractTransactionsBlockRangeFromDB(req.params.address, req.params.contractAddress, startBlock, endBlock, leftLimit, highestBlockNumber, commonDbUtils.AccountQuery.ALL)
       updateTransactonConfirmations(resultFrom, highestBlock)
       result = result.concat(resultFrom)
     }
@@ -81,13 +81,10 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
 
 
 // DB filter methods
-async function fetchAccountBlockRangeFromDB(address: string, startBlock: number, endBlock: number, limit: any, highestBlockNumber: number, query: commonDbUtils.AccountQuery) {
+async function fetchAccountContractTransactionsBlockRangeFromDB(address: string, contractAddress: string, startBlock: number, endBlock: number, limit: any, highestBlockNumber: number, query: commonDbUtils.AccountQuery) {
   let startTimeBlocks = process.hrtime()
-  let resultFilterdBlocks = await commonDbUtils.getAccountTransactionsBlockRangeAllDBsAsync(address, startBlock, endBlock, query, limit)
+  let resultFilterdBlocks = await commonDbUtils.getAccountContractTransactionsBlockRangeAllDBsAsync(address, contractAddress, startBlock, endBlock, query, limit)
   
-  // TODO - Fix contracts!
-  //let resultFilterdBlocks = await commonDbUtils.getAccountContractTransactionsBlockRangeAllDBsAsync(address, startBlock, endBlock, query, limit)
- 
   updateTransactonConfirmations(resultFilterdBlocks, highestBlockNumber)   
   let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
   logger.info(`fetchFromAccountBlockRangeFromDB, elpased time in sec: ${totalElapsedSecondsBlocks}`)
