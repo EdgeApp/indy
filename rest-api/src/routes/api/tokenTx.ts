@@ -84,6 +84,10 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
 async function fetchAccountBlockRangeFromDB(address: string, startBlock: number, endBlock: number, limit: any, highestBlockNumber: number, query: commonDbUtils.AccountQuery) {
   let startTimeBlocks = process.hrtime()
   let resultFilterdBlocks = await commonDbUtils.getAccountTransactionsBlockRangeAllDBsAsync(address, startBlock, endBlock, query, limit)
+  
+  // TODO - Fix contracts!
+  //let resultFilterdBlocks = await commonDbUtils.getAccountContractTransactionsBlockRangeAllDBsAsync(address, startBlock, endBlock, query, limit)
+ 
   updateTransactonConfirmations(resultFilterdBlocks, highestBlockNumber)   
   let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
   logger.info(`fetchFromAccountBlockRangeFromDB, elpased time in sec: ${totalElapsedSecondsBlocks}`)
