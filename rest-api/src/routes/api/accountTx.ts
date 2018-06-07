@@ -23,7 +23,7 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
     let filterDBElapsedSeconds    
     
     // highest block to calc confirmations
-    let highestBlock = await web3.eth.getBlock('pending')
+    let highestBlock = await web3.eth.getBlock('latest')
     let highestBlockNumber = highestBlock.number
 
     // startBlock and endBlock parameters

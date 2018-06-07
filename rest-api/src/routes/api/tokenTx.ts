@@ -14,7 +14,7 @@ web3.setProvider(configuration.provider)
 router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (req, res, next) => {
   try {
     // highest block to calc confirmations
-    let highestBlock = await web3.eth.getBlock('pending')
+    let highestBlock = await web3.eth.getBlock('latest')
     let highestBlockNumber = highestBlock.number
 
     // startBlock and endBlock parameters

@@ -14,7 +14,7 @@ export async function CreateDataBases () : Promise<void> {
   await initDropsDB()
   await initSettingsDB()
 
-  let highestBlock = await web3.eth.getBlock('pending')
+  let highestBlock = await web3.eth.getBlock('latest')
   await commonDbUtils.initAllDBS(highestBlock.number)  
 }
 

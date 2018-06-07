@@ -13,8 +13,11 @@ web3.setProvider(configuration.provider)
 router.get('/txs/:address?', async (req, res, next) => {
   let address = req.params.address
 
-  let block = await web3.eth.getBlock('pending')
-  logger.info(`retrieving pending block # ${block.number}.`)
+  let blockPending = await web3.eth.getBlock('pending')
+  logger.info(`retrieving pending block # ${blockPending.number}.`)
+
+  let block = await web3.eth.getBlock('latest')
+  logger.info(`retrieving pending(latest) block # ${block.number}.`)  
 
   let result = []
   let status = 0
@@ -41,6 +44,8 @@ router.get('/txs/:address?', async (req, res, next) => {
     {
       'status': status,
       'message': message,
+      'pendingBlock' : blockPending.number,
+      'block' : block.number,      
       'count': count,
       'result': result
     })

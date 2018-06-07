@@ -53,7 +53,7 @@ export class IndexerTransactions {
         this.indexSetttings.lastBlock = startBlock
         this.indexSetttings.endBlock += configuration.BlockChunkSize
         // check if chcuk is not out of range 
-        let highestBlock = await this.web3.eth.getBlock('pending')
+        let highestBlock = await this.web3.eth.getBlock('latest')
         let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
         if (this.indexSetttings.endBlock > highestBlockNumberToIndex) {
           this.indexSetttings.endBlock = highestBlockNumberToIndex
@@ -70,7 +70,7 @@ export class IndexerTransactions {
         if(this.indexSetttings.lastBlock ===  this.indexSetttings.endBlock) {
           logger.info(`initIndexSetttings parameters from db lastBlockNumber ==  endBlockNumber, we need to advance the endblock`)        
           this.indexSetttings.endBlock += configuration.BlockChunkSize
-          let highestBlock = await this.web3.eth.getBlock('pending')
+          let highestBlock = await this.web3.eth.getBlock('latest')
           let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
           // check if chcuk is not out of range when approaching live blocks
           if (this.indexSetttings.endBlock > highestBlockNumberToIndex) {
@@ -99,7 +99,7 @@ export class IndexerTransactions {
   }  
 
   private async validateIndexSettings() : Promise<void> {
-    let highestBlock = await this.web3.eth.getBlock('pending')
+    let highestBlock = await this.web3.eth.getBlock('latest')
     let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks    
     if (this.indexSetttings.startBlock > this.indexSetttings.endBlock ||
         this.indexSetttings.lastBlock > this.indexSetttings.endBlock ||   
@@ -113,7 +113,7 @@ export class IndexerTransactions {
   }  
 
   private async indexHistory() : Promise<void>  {
-    let highestBlock = await this.web3.eth.getBlock('pending');
+    let highestBlock = await this.web3.eth.getBlock('latest');
     let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
     logger.info(`indexHistory start, highestBlockNumber: ${highestBlockNumberToIndex}`)
     
@@ -136,7 +136,7 @@ export class IndexerTransactions {
         this.indexSetttings.endBlock += configuration.BlockChunkSize
         logger.info(`indexHistory, indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
 
-        highestBlock = await this.web3.eth.getBlock('pending')
+        highestBlock = await this.web3.eth.getBlock('latest')
         highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
         //highestBlockNumber = 4050000 // temp patch for tests
         logger.info(`indexHistory loop, highestBlockNumber: ${highestBlockNumberToIndex}`)
@@ -239,7 +239,7 @@ export class IndexerTransactions {
     this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
     let lastSavedBlock = this.indexSetttings.lastBlock
     let lastHighestBlockNumber = this.indexSetttings.lastBlock
-    let highestBlock = await this.web3.eth.getBlock('pending')
+    let highestBlock = await this.web3.eth.getBlock('latest')
     let lastRefreshViewBlock = lastSavedBlock
     // debug patch
     //let lastHighestBlockNumber = highestBlock.number - 3
@@ -272,7 +272,7 @@ export class IndexerTransactions {
       logger.info(`************* live blocks loop *****************`)
       logger.info(`************************************************`)
 
-      highestBlock = await this.web3.eth.getBlock('pending')
+      highestBlock = await this.web3.eth.getBlock('latest')
       logger.info(`live highestBlock.number ${highestBlock.number}`)
       logger.info(`live lastHighestBlockNumber ${lastHighestBlockNumber}`)
 
