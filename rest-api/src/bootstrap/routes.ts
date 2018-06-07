@@ -16,6 +16,15 @@ function setApplicationRoutes (app) {
   let latestBlockContoller = require('../routes/api/latestBlock')
   app.use('/mempool', latestBlockContoller) 
 
+  let blockContoller = require('../routes/api/block')
+  app.use('/mempool', blockContoller) 
+
+  let accountBalanceContoller = require('../routes/api/accountBalance')
+  app.use('/account/balance', accountBalanceContoller)  
+
+  let accountTokenBalanceContoller = require('../routes/api/tokenBalance')
+  app.use('/contract/balance', accountTokenBalanceContoller)  
+
   let accountTxContoller = require('../routes/api/accountTx')
   app.use('/account', accountTxContoller)
 
