@@ -20,7 +20,7 @@ export class IndexerTransactions {
   web3: any
   // save the last index and the current range
   indexSetttings : IndexerSettings
-  // for printing only 
+  // for printing only
   transactionCount : number
   // save the live blocks before saving them to history
   liveBlocksTransactionsMap: SortedMap<number, { transactions: Transaction[], blockHash :string }>
@@ -37,7 +37,7 @@ export class IndexerTransactions {
     logger.info('**    startIndexerProcess history finished, start startLiveIndexerProcess    **')
     logger.info(`**    duration in sec: ${totalElapsedSeconds}                                **`)
     logger.info('******************************************************************************')
-    // start indexing live blocks
+    // if not asked for indexing only a specific range from command line parameter, start indexing live blocks
     if (!this.indexSetttings.lastBlockToIndex) {
       await this.startLiveIndexerProcess()
     }
@@ -48,37 +48,37 @@ export class IndexerTransactions {
     try {
       this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
       if(startBlock != undefined) {
-        logger.info(`initIndexSetttings parameters from command line, startBlock: ${startBlock}, lastBlockToIndex: ${lastBlockToIndex} `)        
+        logger.info(`initIndexSetttings parameters from command line, startBlock: ${startBlock}, lastBlockToIndex: ${lastBlockToIndex} `)
         this.indexSetttings.startBlock = startBlock
         this.indexSetttings.lastBlock = startBlock
         this.indexSetttings.endBlock += configuration.BlockChunkSize
-        // check if chcuk is not out of range 
+        // check if chcuk is not out of range
         let highestBlock = await this.web3.eth.getBlock('latest')
         let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
         if (this.indexSetttings.endBlock > highestBlockNumberToIndex) {
           this.indexSetttings.endBlock = highestBlockNumberToIndex
-        } 
-        // check if chcuk is not out of range 
+        }
+        // check if chcuk is not out of range
         if(lastBlockToIndex != undefined && lastBlockToIndex > highestBlockNumberToIndex) {
           this.indexSetttings.lastBlockToIndex = highestBlockNumberToIndex
         }
         // check if index setttings has valid values
-        await this.validateIndexSettings()      
-        await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)        
+        await this.validateIndexSettings()
+        await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
       } else {
-        logger.info(`initIndexSetttings parameters from db`)        
+        logger.info(`initIndexSetttings parameters from db`)
         if(this.indexSetttings.lastBlock ===  this.indexSetttings.endBlock) {
-          logger.info(`initIndexSetttings parameters from db lastBlockNumber ==  endBlockNumber, we need to advance the endblock`)        
+          logger.info(`initIndexSetttings parameters from db lastBlockNumber ==  endBlockNumber, we need to advance the endblock`)
           this.indexSetttings.endBlock += configuration.BlockChunkSize
           let highestBlock = await this.web3.eth.getBlock('latest')
           let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
           // check if chcuk is not out of range when approaching live blocks
           if (this.indexSetttings.endBlock > highestBlockNumberToIndex) {
             this.indexSetttings.endBlock = highestBlockNumberToIndex
-          }        
+          }
         }
-        await this.validateIndexSettings()            
-      } 
+        await this.validateIndexSettings()
+      }
     }
     catch (error) {
       // error - first chunk, no settings in db yet, first time indexing
@@ -96,13 +96,13 @@ export class IndexerTransactions {
         throw error;
       }
     }
-  }  
+  }
 
   private async validateIndexSettings() : Promise<void> {
     let highestBlock = await this.web3.eth.getBlock('latest')
-    let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks    
+    let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
     if (this.indexSetttings.startBlock > this.indexSetttings.endBlock ||
-        this.indexSetttings.lastBlock > this.indexSetttings.endBlock ||   
+        this.indexSetttings.lastBlock > this.indexSetttings.endBlock ||
         this.indexSetttings.startBlock < 0 ||
         this.indexSetttings.endBlock < 0 ||
         this.indexSetttings.lastBlock < 0) {
@@ -110,43 +110,56 @@ export class IndexerTransactions {
           throw (new Error('validateIndexSettings - error, abort!'))
     }
     logger.info(`validateIndexSettings OK`)
-  }  
+  }
 
   private async indexHistory() : Promise<void>  {
     let highestBlock = await this.web3.eth.getBlock('latest');
     let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
     logger.info(`indexHistory start, highestBlockNumber: ${highestBlockNumberToIndex}`)
-    
+
     let done = false
     // for all history blocks, up to the live MaxEphemeralForkBlocks blocks - index in chunks
     try {
       while ((!done && this.indexSetttings.endBlock <= highestBlockNumberToIndex) ||
         (this.indexSetttings.lastBlockToIndex && this.indexSetttings.endBlock < this.indexSetttings.lastBlockToIndex)) {
         let startTime = process.hrtime()
-        // index block chunk 
+        // index block chunk
         await this.startIndex(this.indexSetttings.lastBlock, this.indexSetttings.endBlock)
         let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
         logger.info(`indexHistory method, ${this.indexSetttings.endBlock - this.indexSetttings.startBlock} blocks, duration in sec: ${elapsedSeconds}`);
-        
-        // make sure to do last refresh
-        dbUtils.refreshViews('refreshDummyAccount', this.indexSetttings.endBlock - 1)         
 
-        // advance to the next block chunk
-        this.indexSetttings.startBlock = this.indexSetttings.endBlock
-        this.indexSetttings.endBlock += configuration.BlockChunkSize
-        logger.info(`indexHistory, indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
+        // make sure to do last refresh
+        dbUtils.refreshViews('refreshDummyAccount', this.indexSetttings.endBlock - 1)
 
         highestBlock = await this.web3.eth.getBlock('latest')
         highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
         //highestBlockNumber = 4050000 // temp patch for tests
+        logger.info(`indexHistory loop, highestBlock: ${highestBlock}`)
         logger.info(`indexHistory loop, highestBlockNumber: ${highestBlockNumberToIndex}`)
 
-        // check if chcuk is not out of range when approaching live blocks
-        if (this.indexSetttings.endBlock > highestBlockNumberToIndex) {
-          logger.info(`last indexHistory loop, endBlockNumber > highestBlockNumberToIndex. highestBlockNumberToIndex:  ${highestBlockNumberToIndex}`)
+        // advance to the next block chunk
+        this.indexSetttings.startBlock = this.indexSetttings.endBlock
+        this.indexSetttings.endBlock += configuration.BlockChunkSize
+        if(this.indexSetttings.endBlock > highestBlockNumberToIndex) {
           this.indexSetttings.endBlock = highestBlockNumberToIndex
-          await this.startIndex(this.indexSetttings.lastBlock, this.indexSetttings.endBlock)
-          done = true  
+        }
+
+        logger.info(`indexHistory, indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
+
+        // TODO: remove this after tests
+        // old condtion cause gap to be too large ( > 100)
+        // check if chcuk is not out of range when approaching live blocks
+        // if (this.indexSetttings.endBlock > highestBlockNumberToIndex) {
+        //   logger.info(`last indexHistory loop, endBlockNumber > highestBlockNumberToIndex. highestBlockNumberToIndex:  ${highestBlockNumberToIndex}`)
+        //   this.indexSetttings.endBlock = highestBlockNumberToIndex
+        //   await this.startIndex(this.indexSetttings.lastBlock, this.indexSetttings.endBlock)
+        //   done = true
+        // }
+
+        // check  this condition here and not in the loop to provide appropriate log
+        if (this.indexSetttings.lastBlock >= highestBlockNumberToIndex) {
+          logger.info(`finished indexHistory loop, indexSetttings.lastBlock >= highestBlockNumberToIndex. highestBlockNumberToIndex:  ${highestBlockNumberToIndex}, indexSettings.lastBlock: ${this.indexSetttings.lastBlock}`)
+          done = true
         }
         // TODO - make sure to handle lastBlockToIndex limitation - currently we can take more, when advancing in BlockChunkSize
       }
@@ -185,7 +198,7 @@ export class IndexerTransactions {
       }
       // make sure to trigger views indexing every 10,000 blocks - only on history indexing.
       // do not wait for this call, let it run at the backgound. Ignore timeouts.
-      dbUtils.refreshViews('refreshDummyAccount', endBlock - 1)         
+      dbUtils.refreshViews('refreshDummyAccount', endBlock - 1)
     } catch (error) {
       logger.error(`startIndex error in blocks ${startBlock} - ${endBlock}, abort!`)
       logger.error(error)
@@ -303,7 +316,7 @@ export class IndexerTransactions {
       if(lastSavedBlock - lastRefreshViewBlock > 100) {
         // make sure to trigger views indexing every 1000 blocks
         // do not wait for this call, let it run at the backgound. Ignore timeouts.
-        dbUtils.refreshViews('refreshLiveDummyAccount', lastSavedBlock)  
+        dbUtils.refreshViews('refreshLiveDummyAccount', lastSavedBlock)
         lastRefreshViewBlock = lastSavedBlock
       }
       logger.info(`invoke again in :${nextFetch} sec`)
@@ -351,8 +364,8 @@ export class IndexerTransactions {
           } else {
             logger.info(`live updateLiveBlocks getSingleBlockTransactionsAsync for ${blockNumber} fail, removing block from list`)
             if (this.liveBlocksTransactionsMap.has(blockNumber)) {
-              this.liveBlocksTransactionsMap.delete(blockNumber)            
-            }                      
+              this.liveBlocksTransactionsMap.delete(blockNumber)
+            }
           }
         }
       }
