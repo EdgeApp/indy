@@ -23,7 +23,7 @@ function setApplicationRoutes (app) {
   app.use('/account/balance', accountBalanceContoller)  
 
   let accountTokenBalanceContoller = require('../routes/api/tokenBalance')
-  app.use('/contract/balance', accountTokenBalanceContoller)  
+  app.use('/token/balance', accountTokenBalanceContoller)  
 
   let accountTxContoller = require('../routes/api/accountTx')
   app.use('/account', accountTxContoller)
