@@ -134,7 +134,7 @@ export class IndexerTransactions {
         highestBlock = await this.web3.eth.getBlock('latest')
         highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
         //highestBlockNumber = 4050000 // temp patch for tests
-        logger.info(`indexHistory loop, highestBlock: ${highestBlock}`)
+        logger.info(`indexHistory loop, highestBlock: ${highestBlock.number}`)
         logger.info(`indexHistory loop, highestBlockNumber: ${highestBlockNumberToIndex}`)
 
         // advance to the next block chunk
