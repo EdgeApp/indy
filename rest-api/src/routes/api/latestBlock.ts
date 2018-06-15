@@ -9,7 +9,7 @@ const web3 = new Web3()
 
 web3.setProvider(configuration.provider)
 
-router.get('/latest', async (req, res, next) => {
+router.get('/highest', async (req, res, next) => {
   let address = req.params.address
 
   let block = await web3.eth.getBlock('latest')
