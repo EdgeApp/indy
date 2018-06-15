@@ -47,6 +47,7 @@ export class IndexerTransactions {
     logger.info('initIndexSetttings')
     try {
       this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
+      // in case we got parameters from command line
       if(startBlock != undefined) {
         logger.info(`initIndexSetttings parameters from command line, startBlock: ${startBlock}, lastBlockToIndex: ${lastBlockToIndex} `)
         this.indexSetttings.startBlock = startBlock
@@ -115,7 +116,7 @@ export class IndexerTransactions {
   private async indexHistory() : Promise<void>  {
     let highestBlock = await this.web3.eth.getBlock('latest');
     let highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
-    logger.info(`indexHistory start, highestBlockNumber: ${highestBlockNumberToIndex}`)
+    logger.info(`indexHistory start, highestBlockNumber: ${highestBlockNumberToIndex}, blocks to index: ${highestBlockNumberToIndex - this.indexSetttings.lastBlock }`)
 
     let done = false
     // for all history blocks, up to the live MaxEphemeralForkBlocks blocks - index in chunks
