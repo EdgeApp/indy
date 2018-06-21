@@ -91,14 +91,14 @@ export async function refreshViews (account: string, startBlock: number) {
   if(configuration.FilterInMemory) {
     commonDbUtils.refreshAccountFromTransactionsAsync(account, startBlock).catch((error) => {
       logger.error(`Timeout refreshAccountFromTransactionsAsync, index in process, ignore error ${account}`)
-      logger.info('************************************************************************************************** ')    
-    }) 
+      logger.info('************************************************************************************************** ')
+    })
     commonDbUtils.refreshAccountToTransactionsAsync(account, startBlock).catch((error) => {
       logger.error(`Timeout refreshAccountToTransactionsAsync, index in process, ignore error ${account}`)
-      logger.info('************************************************************************************************** ')    
-    }) 
-  } 
-  
+      logger.info('************************************************************************************************** ')
+    })
+  }
+
   if(configuration.FilterInDB) {
     commonDbUtils.refreshAccountFromBlocksTransactionsAsync(account, startBlock).catch((error) => {
       logger.error(`Timeout refreshAccountFromBlocksTransactionsAsync, index in process, ignore error ${account}`)
@@ -106,9 +106,9 @@ export async function refreshViews (account: string, startBlock: number) {
     })
     commonDbUtils.refreshAccountToBlocksTransactionsAsync(account, startBlock).catch((error) => {
       logger.error(`Timeout refreshAccountToBlocksTransactionsAsync, index in process, ignore error ${account}`)
-      logger.info('************************************************************************************************** ')    
-    })  
-  }  
+      logger.info('************************************************************************************************** ')
+    })
+  }
 }
 
 export async function saveDropsInfoAsync (dropInfo: any) : Promise<void> {
@@ -118,7 +118,7 @@ export async function saveDropsInfoAsync (dropInfo: any) : Promise<void> {
       if (!error) {
         logger.info(`info for drop : ${dropInfo._id} exist, updating revision`)
         dropInfo._rev = existing._rev
-      }    
+      }
       dropsDb.insert(dropInfo, dropInfo._id, function (error, response) {
         if (!error) {
           logger.info(`info for drop "${dropInfo.description}" inserted`)

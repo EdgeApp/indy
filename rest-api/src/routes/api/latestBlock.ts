@@ -22,7 +22,7 @@ router.get('/highest', async (req, res, next) => {
 
   if (block) {
     try {
-      result = block.number.toString()    
+      result = block.number.toString()
       message = 'OK'
       status = 1
     } catch (error) {

@@ -17,7 +17,7 @@ router.get('/txs/:address?', async (req, res, next) => {
   // logger.info(`retrieving pending block # ${blockPending.number}.`)
 
   let block = await web3.eth.getBlock('latest')
-  logger.info(`retrieving pending(latest) block # ${block.number}.`)  
+  logger.info(`retrieving pending(latest) block # ${block.number}.`)
 
   let result = []
   let status = 0
@@ -27,9 +27,9 @@ router.get('/txs/:address?', async (req, res, next) => {
   if (block) {
     try {
       result = await blockUtils.getTransactions(block, address)
-      result.forEach((transaction) => { 
-        delete transaction._id     
-      })      
+      result.forEach((transaction) => {
+        delete transaction._id
+      })
       count = result.length
       message = 'OK'
       status = 1
