@@ -320,7 +320,6 @@ async function getAccountTransactionsBlockRangeAsync (db: any, doc: string, view
   return promise
 }
 
-
 // get list of transation from startTransaction key
 export async function getListOfTransactionsBlockRangeAsync (db: any, doc: string, startTransacion: number, limitTransactions: number) : Promise<Array<any>> {
 
@@ -517,7 +516,7 @@ export async function addViewsAsync (dbName: string) : Promise<void> {
         emit([doc.destination, doc.blockNumber], null)
       }
     }
-  }  
+  }
 
   if(configuration.FilterInMemory) {
   await addViewAsync(dbName, consts.toDoc, dbViews[consts.toDoc])

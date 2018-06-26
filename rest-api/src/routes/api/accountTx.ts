@@ -6,7 +6,6 @@ import * as commonDbUtils from '../../../../common/commonDbUtils'
 import { configuration } from '../../config/config'
 import { Transaction } from '../../../../common/models/transaction'
 
-
 const Web3 = require('web3')
 const web3 = new Web3()
 web3.setProvider(configuration.provider)
@@ -151,7 +150,6 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
     let totalElapsedSecondsAccount = utils.parseHrtimeToSeconds(process.hrtime(totalStartTimeAccount))
     logger.info(`Total account query, elpased time in sec: ${totalElapsedSecondsAccount}`)
 
-
     return res.json(
       {
         'status': 1,
@@ -205,8 +203,6 @@ function filterAndUpdateTransactionConfirmations(resultFrom: any[], limit: numbe
     }
   }
 }
-
-
 
 module.exports = router
 
