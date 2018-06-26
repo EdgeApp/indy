@@ -14,10 +14,14 @@ export class Transaction {
   transactionIndex: number
   from: string
   to: string
+  destination: string
+  data: string
   value: number
   gas: number
   gasPrice: number
   input: string
+  logs: Array<any>
+
 
   // receipt
   contractAddress: string
@@ -36,8 +40,10 @@ export class Transaction {
     this.hash = web3Transaction.hash
     this.nonce = web3Transaction.nonce
     this.transactionIndex = web3Transaction.transactionIndex
-    this.from = web3Transaction.from
-    this.to = web3Transaction.to
+    this.from = web3Transaction.from.toLowerCase()
+    this.to = web3Transaction.to.toLowerCase()
+    this.handleLogs(transactionReceipt)
+
     this.value = web3Transaction.value
     this.gas = web3Transaction.gas
     this.gasPrice = web3Transaction.gasPrice
@@ -55,5 +61,33 @@ export class Transaction {
     this.gasUsed = transactionReceipt.gasUsed
     this.cumulativeGasUsed = transactionReceipt.cumulativeGasUsed
     this.contractAddress = transactionReceipt.contractAddress
+  }
+
+  private handleLogs (transactionReceipt: any) {
+
+    this.destination = null
+    this.data = null
+    let logs = new Array<any>()
+
+    for (let log of transactionReceipt.logs) {
+      logs.push({
+        'data': log.data,
+        'id': log.id,
+        'topics' : log.topics
+      })
+    }
+
+    for (let log of logs) {
+      if(log.topics.length == 3) {
+        // this topic if token tranfer code
+        if(log.topics[0] == '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') {
+          // this is the address that the token was sent
+          this.destination = log.topics[2].toLowerCase()
+          this.data = log.data
+          break
+        }
+      } 
+    }
+    this.logs = logs
   }
 }
