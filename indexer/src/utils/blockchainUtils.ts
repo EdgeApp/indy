@@ -33,7 +33,7 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
       logger.info(`getBlockTransactionsAsync waiting for blocks #${startIndex - index} - #${startIndex - 1} requests`)
       // wait for blocks
       let resBlocks = await Promise.all(blocksPromises)
-      let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))      
+      let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
       logger.info(`getBlockTransactionsAsync got blocks, duration in sec:, ${elapsedSeconds}`)
       // for every block, handle transactions
       let startTimeTransactions = process.hrtime()
@@ -51,12 +51,12 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
           } catch (error) {
             // save fail blocks to setttings DB
             let drop = new DropInfo(block, error.message)
-            dbUtils.saveDropsInfoAsync(drop)            
+            dbUtils.saveDropsInfoAsync(drop)
             logger.error(error)
           }
         }
       }
-      let elapsedSecondsTransactions = utils.parseHrtimeToSeconds(process.hrtime(startTimeTransactions))      
+      let elapsedSecondsTransactions = utils.parseHrtimeToSeconds(process.hrtime(startTimeTransactions))
       logger.info(`getBlockTransactionsAsync tx for blocks #${startIndex - configuration.BlockReqeusts} - #${startIndex - 1} : ${transactionCount}, duration in sec:, ${elapsedSecondsTransactions}`)
     }
   } catch (error) {
@@ -77,7 +77,7 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
       let resTransactions = []
       await retry(async fetch => {
         // if anything throws, we retry
-        resTransactions = await convertTransactionFormatAsync(block, block.transactions) 
+        resTransactions = await convertTransactionFormatAsync(block, block.transactions)
         if (!resTransactions) {
           logger.error(`getTransactionsFromBlockAsync error fetch block #${block.number}, missing block`)
           throw(new Error(`getTransactionsFromBlockAsync error fetch block #${block.number}, missing block`))
@@ -90,13 +90,13 @@ export async function getTransactionsFromBlockAsync (block): Promise<Array<Trans
       return resTransactions
     } else {
       logger.error(`getTransactionsFromBlockAsync error fetch block #${block.number} transactions are missing`)
-    } 
+    }
   } catch (error) {
-    dbUtils.saveDropsInfoAsync(new DropInfo(block, 'getTransactionsFromBlockAsync error fetch'))             
+    dbUtils.saveDropsInfoAsync(new DropInfo(block, 'getTransactionsFromBlockAsync error fetch'))
     logger.error(`getTransactionsFromBlockAsync error fetch block #${block.number}, missing block, saving to dropsDB`)
     return null
   }
-} 
+}
 
 // get more info on transactions, from the transaction receipt
 export async function convertTransactionFormatAsync (block: any, web3transactions: any[]): Promise<Array<Transaction>> {
@@ -135,13 +135,13 @@ export async function getBlockTransactionsMapAsync (startBlock: number, endBlock
   let transactionCount = 0
 
   logger.info(`getBlockTransactionsMapAsync, get blocks, from ${startBlock} to ${endBlock}`)
-  
+
   // for all the block range, include the last block
   while (startIndex <= endBlock) {
     let blocksPromises = []
 
     logger.info(`getBlockTransactionsMapAsync, wait for promises`)
-    
+
     // async as BlockReqeusts config size
     for (let index = 0; startIndex <= endBlock && index <= configuration.BlockReqeusts; index++, startIndex++) {
       // fetch full block, include transactions
@@ -151,7 +151,7 @@ export async function getBlockTransactionsMapAsync (startBlock: number, endBlock
     let resBlocks = await Promise.all(blocksPromises)
 
     logger.info(`getBlockTransactionsMapAsync, done waiting for promises`)
-    
+
     for (let blockIndex = 0; blockIndex < resBlocks.length; ) {
       let block = resBlocks[blockIndex]
       if (block) {
@@ -164,7 +164,7 @@ export async function getBlockTransactionsMapAsync (startBlock: number, endBlock
             transactionCount += transactions.length
             blockIndex++
           } else {
-            logger.error(`getBlockTransactionsMapAsync, transactions not found for block ${block}`)            
+            logger.error(`getBlockTransactionsMapAsync, transactions not found for block ${block}`)
           }
         } catch (error) {
           logger.info(error)
