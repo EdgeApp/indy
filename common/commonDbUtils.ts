@@ -24,7 +24,7 @@ export async function getAccountTransactionsBlockRangeMemoryAllDBsAsync (account
   // for (let index = 0; index < DB.length - 1; index++) {
   //   const dbName = DB[index]
   //   createDbAndViews(dbName)
-  // }  
+  // }
   // for each db:
   // get FROM and TO
   // sort
@@ -41,7 +41,7 @@ export async function getAccountTransactionsBlockRangeMemoryAllDBsAsync (account
         let resTo = await getAccountToTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
         result = result.concat(resFrom)
         result = result.concat(resTo)
-        
+
         // sort results by block number
         result.sort((transactionA, transactionB) => {
           if (transactionA.blockNumber < transactionB.blockNumber){
@@ -53,30 +53,30 @@ export async function getAccountTransactionsBlockRangeMemoryAllDBsAsync (account
           return 0
         })
         if(result.length >= limitTransactions) {
-          result = result.splice(0, limitTransactions)      
-          return result      
-        }        
+          result = result.splice(0, limitTransactions)
+          return result
+        }
       } catch (error) {
-        
+
       }
 
     } else if(query == AccountQuery.FROM) {
       let resFrom = await getAccountFromTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
       result = result.concat(resFrom)
       if(result.length >= limitTransactions) {
-        result = result.splice(0, limitTransactions)      
-        return result      
+        result = result.splice(0, limitTransactions)
+        return result
       }
     } else if(query == AccountQuery.TO) {
       let resTo = await getAccountToTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
       result = result.concat(resTo)
       if(result.length >= limitTransactions) {
-        result = result.splice(0, limitTransactions)      
-        return result      
+        result = result.splice(0, limitTransactions)
+        return result
       }
     }
   }
-  return result      
+  return result
 }
 
 export async function getAccountContractTransactionsBlockRangeMemoryAllDBsAsync (account: string, contractAddress: string, startBlock: number, endBlock: number, query: AccountQuery = AccountQuery.ALL, limitTransactions: number = 10000) : Promise<Array<any>> {
@@ -99,12 +99,12 @@ export async function getAccountContractTransactionsBlockRangeMemoryAllDBsAsync 
     if(query == AccountQuery.ALL) {
       let resFrom = await getAccountFromTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
       let resTo = await getAccountToTransactionsMemoryAsync(dbName, account, endBlock, limitTransactions)
-      
+
       let tempFrom = filterContractByBlocksAndLimit(startBlock, endBlock, contractAddress, resFrom, limitTransactions)
       result = result.concat(tempFrom)
       let tempTo = filterContractByBlocksAndLimit(startBlock, endBlock, contractAddress, resTo, limitTransactions)
       result = result.concat(tempTo)
-      
+
       // sort results by block number
       result.sort((transactionA, transactionB) => {
         if (transactionA.blockNumber < transactionB.blockNumber){
@@ -116,12 +116,12 @@ export async function getAccountContractTransactionsBlockRangeMemoryAllDBsAsync 
         return 0
       })
       if(result.length >= limitTransactions) {
-        result = result.splice(0, limitTransactions)      
-        return result      
+        result = result.splice(0, limitTransactions)
+        return result
       }
     }
   }
-  return result      
+  return result
 }
 
 // get account by FROM view
@@ -136,10 +136,10 @@ export async function getAccountToTransactionsMemoryAsync (dbName: string, accou
   return getAccountTransactionsAsync(dbName, consts.toDoc, consts.fixedViewName, account, limitTransactions)
 }
 
-// get Account 
+// get Account
 async function getAccountTransactionsAsync (dbName: string, doc: string, view: string, account: string, limitTransactions: number) : Promise<Array<any>> {
   let promise =  new Promise<Array<any>>(async (resolve, reject) => {
-    let currentDb = dbHandler.use(dbName)        
+    let currentDb = dbHandler.use(dbName)
     currentDb.view(doc, view, {keys: [account], include_docs: true, limit: limitTransactions}, function (err, body) {
       if (!err) {
         let result = []
@@ -161,7 +161,7 @@ async function getAccountTransactionsAsync (dbName: string, doc: string, view: s
   promise.catch((error) => {
     logger.error(`Error getAccountTransactionsAsync ${account}`)
   })
-  return promise  
+  return promise
 }
 
 
@@ -177,7 +177,7 @@ export async function getAccountTransactionsBlockRangeAllDBsAsync (account: stri
   //           "supernodedb-800000-899999", "supernodedb-900000-999999"]
   // loop on all dbs untill limit reached
   let DB = await calcDBNameListForBlockRangeFetch(startBlock, endBlock)
- 
+
   // for each db:
   // get FROM and TO
   // sort
@@ -192,7 +192,7 @@ export async function getAccountTransactionsBlockRangeAllDBsAsync (account: stri
       let resTo = await getAccountTransactionsBlockRangeAsync(dbName, consts.toDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
       result = result.concat(resFrom)
       result = result.concat(resTo)
-      
+
       // sort results by block number
       result.sort((transactionA, transactionB) => {
         if (transactionA.blockNumber < transactionB.blockNumber){
@@ -204,26 +204,26 @@ export async function getAccountTransactionsBlockRangeAllDBsAsync (account: stri
         return 0
       })
       if(result.length >= limitTransactions) {
-        result = result.splice(0, limitTransactions)      
-        return result      
+        result = result.splice(0, limitTransactions)
+        return result
       }
     } else if(query == AccountQuery.FROM) {
       let resFrom = await getAccountTransactionsBlockRangeAsync(dbName, consts.fromDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
       result = result.concat(resFrom)
       if(result.length >= limitTransactions) {
-        result = result.splice(0, limitTransactions)      
-        return result      
+        result = result.splice(0, limitTransactions)
+        return result
       }
     } else if(query == AccountQuery.TO) {
       let resTo = await getAccountTransactionsBlockRangeAsync(dbName, consts.toDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
       result = result.concat(resTo)
       if(result.length >= limitTransactions) {
-        result = result.splice(0, limitTransactions)      
-        return result      
+        result = result.splice(0, limitTransactions)
+        return result
       }
     }
   }
-  return result      
+  return result
 }
 
 // **********************************************************************************************************************
@@ -249,12 +249,12 @@ export async function getAccountContractTransactionsBlockRangeAllDBsAsync (accou
     if(query == AccountQuery.ALL) {
       let resFrom = await getAccountTransactionsBlockRangeAsync(dbName, consts.fromDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
       let resTo = await getAccountTransactionsBlockRangeAsync(dbName, consts.toDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
-      
+
       let tempFrom = filterContractByBlocksAndLimit(startBlock, endBlock, contractAddress, resFrom, limitTransactions)
       result = result.concat(tempFrom)
       let tempTo = filterContractByBlocksAndLimit(startBlock, endBlock, contractAddress, resTo, limitTransactions)
       result = result.concat(tempTo)
-      
+
       // sort results by block number
       result.sort((transactionA, transactionB) => {
         if (transactionA.blockNumber < transactionB.blockNumber){
@@ -266,12 +266,12 @@ export async function getAccountContractTransactionsBlockRangeAllDBsAsync (accou
         return 0
       })
       if(result.length >= limitTransactions) {
-        result = result.splice(0, limitTransactions)      
-        return result      
+        result = result.splice(0, limitTransactions)
+        return result
       }
     }
   }
-  return result      
+  return result
 }
 
 function filterContractByBlocksAndLimit(startBlock: number, endBlock: number, contractAddress : string, resultToFilter: Array<Transaction>, limit: number) {
@@ -279,9 +279,9 @@ function filterContractByBlocksAndLimit(startBlock: number, endBlock: number, co
   let result = []
   for (let index = 0; index < resultToFilter.length && numInserterd < limit; index++) {
     let transaction = resultToFilter[index]
-    if ((contractAddress === transaction.to || contractAddress === transaction.contractAddress || contractAddress === transaction.from) 
-        && ((startBlock != undefined && endBlock != undefined && 
-          (transaction.blockNumber >= startBlock && transaction.blockNumber <= endBlock)) || 
+    if ((contractAddress === transaction.to || contractAddress === transaction.contractAddress || contractAddress === transaction.from)
+        && ((startBlock != undefined && endBlock != undefined &&
+          (transaction.blockNumber >= startBlock && transaction.blockNumber <= endBlock)) ||
           (startBlock === undefined && endBlock === undefined))) {
       result.push(transaction);
       numInserterd++;
@@ -296,8 +296,8 @@ async function getAccountTransactionsBlockRangeAsync (db: any, doc: string, view
   let params = {startkey: [account, startBlock], endkey: [account, endBlock ,{}], include_docs: true}
   let paramsQueries = {"queries": [params], include_docs: true} // not in use - need to check NANO support
   let promise =  new Promise<Array<any>>(async (resolve, reject) => {
-    let currentDb = dbHandler.use(db)        
-    currentDb.view(doc, view, params , function (err, body) {    
+    let currentDb = dbHandler.use(db)
+    currentDb.view(doc, view, params , function (err, body) {
       if (!err) {
         let result = []
         body.rows.forEach(function (row) {
@@ -317,7 +317,35 @@ async function getAccountTransactionsBlockRangeAsync (db: any, doc: string, view
   promise.catch((error) => {
     logger.error(`Error getAccountTransactionsBlocksAsync from db: ${db} account: ${account}`)
   })
-  return promise  
+  return promise
+}
+
+
+// get list of transation from startTransaction key
+export async function getListOfTransactionsBlockRangeAsync (db: any, doc: string, startTransacion: number, limitTransactions: number) : Promise<Array<any>> {
+
+  let params = { startkey: [ startTransacion ], limit: limitTransactions, skip: 1, include_docs: true}
+  let promise =  new Promise<Array<any>>(async (resolve, reject) => {
+    let currentDb = dbHandler.use(db)
+    currentDb.list(doc, params , function (err, body) {
+      if (!err) {
+        let result = []
+        body.rows.forEach(function (row) {
+          result.push(row.doc)
+          //logger.info(row.doc)
+        })
+        logger.info(`getListOfTransactionsBlockRangeAsync from db: ${db} result count: ${result.length}`)
+        resolve(result)
+      } else {
+        //logger.error(err)
+        reject(new Error(`Error reject from db: ${db} getListOfTransactionsBlockRangeAsync startTransacion: ${startTransacion}`))
+      }
+    })
+  })
+  promise.catch((error) => {
+    logger.error(`Error getListOfTransactionsBlockRangeAsync from db: ${db} startTransacion: ${startTransacion}`)
+  })
+  return promise
 }
 
 // ***************
@@ -328,7 +356,7 @@ export async function initAllDBS (limit: number) {
   for (let index = 0; index < dBList.length; index++) {
     let element = dBList[index]
     let dbName = makeDBName(element)
-    await createDbAndViews(dbName)    
+    await createDbAndViews(dbName)
   }
 }
 
@@ -375,13 +403,13 @@ export async function calcDBNameForBlockRange(block) : Promise<string> {
       logger.info(`calcDBNameForBlockRange dbName: ${dbName} for block ${block}`)
       return dbName
     }
-  }  
+  }
   logger.error(`calcDBNameForBlockRange didn't find DB name for block ${block}`)
-  throw (new Error(`calcDBNameForBlockRange didn't find DB name for block ${block}`))    
+  throw (new Error(`calcDBNameForBlockRange didn't find DB name for block ${block}`))
  }
 
  export async function getAllPossibleDBRanges(limit: number) : Promise<Array<any>>{
-  let allPossibleDBRanges = []   
+  let allPossibleDBRanges = []
   for (let range = 0; range <= limit; range += 100000) {
     allPossibleDBRanges.push({ start: range, end: range + 100000 - 1 })
   }
@@ -407,11 +435,11 @@ export async function calcDBNameForBlockRange(block) : Promise<string> {
       rangeEndIndex = index
       break
     }
-  }  
-  
+  }
+
   if(rangeStartIndex == -1 || rangeEndIndex == -1) {
     logger.error(`Error in calcDBNameListForBlockRangeFetch, startBlock: ${startBlock} endBlock: ${endBlock}, abort`)
-    throw (new Error('Error in calcDBNameListForBlockRangeFetch, abort!'))    
+    throw (new Error('Error in calcDBNameListForBlockRangeFetch, abort!'))
   }
 
   let dbNameList = []
@@ -420,9 +448,9 @@ export async function calcDBNameForBlockRange(block) : Promise<string> {
     if(index >= rangeStartIndex && index <= rangeEndIndex) {
       let dbName = makeDBName(element)
       logger.info(`calcDBNameListForBlockRangeFetch DB name added to list, dbName: ${dbName}`)
-      dbNameList.push(dbName)    
+      dbNameList.push(dbName)
     }
-  }  
+  }
   return dbNameList
  }
 
@@ -482,18 +510,27 @@ export async function addViewsAsync (dbName: string) : Promise<void> {
       }
     }
   }
+  dbViews[consts.destinationDocBlocks] =
+  {
+    map: function (doc) {
+      if (doc.to) {
+        emit([doc.destination, doc.blockNumber], null)
+      }
+    }
+  }  
 
   if(configuration.FilterInMemory) {
   await addViewAsync(dbName, consts.toDoc, dbViews[consts.toDoc])
-  await addViewAsync(dbName, consts.fromDoc, dbViews[consts.fromDoc])  
-  }  
-  
+  await addViewAsync(dbName, consts.fromDoc, dbViews[consts.fromDoc])
+  }
+
   if(configuration.FilterInDB) {
     await addViewAsync(dbName, consts.fromDocBlocks, dbViews[consts.fromDocBlocks])
-    await addViewAsync(dbName, consts.toDocBlocks, dbViews[consts.toDocBlocks])    
+    await addViewAsync(dbName, consts.toDocBlocks, dbViews[consts.toDocBlocks])
+    await addViewAsync(dbName, consts.destinationDocBlocks, dbViews[consts.destinationDocBlocks])
   }
 }
- 
+
 async function addViewAsync (dbName: string, viewName: string, view: any) : Promise<void> {
   let db = dbHandler.use(dbName)
   let designDocName = '_design/' + viewName
