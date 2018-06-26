@@ -26,14 +26,14 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
       throw( new Error(`REST API - Error in blocks range, startBlock: ${startBlock}, endBlock: ${endBlock}`))
     }
     // calc the limit
-    let limit = req.params.limit && req.params.limit >= 10 && req.params.limit <= 10000 ? req.params.limit : 10000    
+    let limit = req.params.limit && req.params.limit >= 10 && req.params.limit <= 10000 ? req.params.limit : 10000
 
     let result = []
     let liveBlocks: boolean = false
 
     // first, check if we can include the live block.
     // then take the live transactions (12 blocks) from indexer. user the baseurl to fetch account, from or to requests.
-    if (endBlock == undefined || 
+    if (endBlock == undefined ||
        (endBlock && (endBlock >= highestBlockNumber - configuration.MaxEphemeralForkBlocks))) {
       try {
         let reqRes = await request({
@@ -41,16 +41,16 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
           baseUrl: configuration._indexerUrl,
           json: true,
           timeout: 5000
-        }) 
+        })
         // add the results to "result" array after filtering and limiting
         filterByBlocksAndLimit(startBlock, endBlock, reqRes.result, limit, result, highestBlockNumber, req.params.contractAddress)
-        liveBlocks = true        
+        liveBlocks = true
       } catch (error) {
         logger.error('Error getting live blocks from indexer')
       }
-    }    
+    }
 
-    // if live didn't fill the limit, lets take more 
+    // if live didn't fill the limit, lets take more
     let leftLimit = limit - result.length
     // take all the contracts transactions that are FROM the account
     if (leftLimit > 0) {
@@ -66,7 +66,7 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
         'status': 1,
         'message': 'OK',
         'count': result.length,
-        'includeLiveBlocks': liveBlocks,         
+        'includeLiveBlocks': liveBlocks,
         'result': result
       })
   } catch (error) {
@@ -84,8 +84,8 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
 async function fetchAccountContractTransactionsBlockRangeFromDB(address: string, contractAddress: string, startBlock: number, endBlock: number, limit: any, highestBlockNumber: number, query: commonDbUtils.AccountQuery) {
   let startTimeBlocks = process.hrtime()
   let resultFilterdBlocks = await commonDbUtils.getAccountContractTransactionsBlockRangeAllDBsAsync(address, contractAddress, startBlock, endBlock, query, limit)
-  
-  updateTransactonConfirmations(resultFilterdBlocks, highestBlockNumber)   
+
+  updateTransactonConfirmations(resultFilterdBlocks, highestBlockNumber)
   let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
   logger.info(`fetchFromAccountBlockRangeFromDB, elpased time in sec: ${totalElapsedSecondsBlocks}`)
   return resultFilterdBlocks
@@ -99,16 +99,18 @@ function updateTransactonConfirmations(resultFilterdBlocks: any[], highestBlockN
   }
 }
 
-function filterByBlocksAndLimit(startBlock: number, endBlock: number, resultFrom: Array<Transaction>, limit: number, 
+function filterByBlocksAndLimit(startBlock: number, endBlock: number, resultFrom: Array<Transaction>, limit: number,
                                 result: Array<Transaction>, highestBlockNumber: number, contractAddress : string) {
   let numInserterd = 0;
   for (let index = 0; index < resultFrom.length && numInserterd < limit; index++) {
     let transaction = resultFrom[index]
-    if ((contractAddress === transaction.to || contractAddress === transaction.contractAddress || contractAddress === transaction.from) 
-       && ((startBlock != undefined && endBlock != undefined && 
-          (transaction.blockNumber >= startBlock && transaction.blockNumber <= endBlock)) || 
+    if ((contractAddress.toLowerCase() === transaction.to.toLowerCase() ||
+        contractAddress.toLowerCase() === transaction.contractAddress.toLowerCase() ||
+        contractAddress.toLowerCase() === transaction.from.toLowerCase())
+       && ((startBlock != undefined && endBlock != undefined &&
+          (transaction.blockNumber >= startBlock && transaction.blockNumber <= endBlock)) ||
           (startBlock === undefined && endBlock === undefined))) {
-      
+
       result.push(transaction);
       transaction.confirmations = highestBlockNumber - transaction.blockNumber;
       delete transaction._id;

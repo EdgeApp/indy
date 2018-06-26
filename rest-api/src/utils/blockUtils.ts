@@ -16,7 +16,7 @@ export async function getTransactions (block, address) : Promise<Array<Transacti
       block.transactions.forEach((t) => transactionPromises.push(web3.eth.getTransaction(t)))
 
       let resTransactions = await Promise.all(transactionPromises)
-      resTransactions = address ? resTransactions.filter((transaction) => (transaction.from === address || transaction.to === address)) : resTransactions
+      resTransactions = address ? resTransactions.filter((transaction) => (transaction.from.toLowerCase() === address.toLowerCase() || transaction.to.toLowerCase() === address.toLowerCase())) : resTransactions
 
       let transactions = await convertTransactionFormat(block, resTransactions)
       return transactions

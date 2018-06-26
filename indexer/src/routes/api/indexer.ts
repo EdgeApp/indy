@@ -30,11 +30,11 @@ router.get('/liveBlocks/:address/:fromto', async (req, res, next) => {
     liveTransactions.forEach(function (value, key, mapObj) {
       if (filterAddress) {
         if(isAccount || isFrom) {
-          let fromTransactions = value.transactions.filter((t) => t.from === filterAddress)
+          let fromTransactions = value.transactions.filter((t) => t.from.toLowerCase() === filterAddress.toLowerCase())
           resTransactions = resTransactions.concat(fromTransactions)
         }
         if(isAccount || isTo) {
-          let toTransactions = value.transactions.filter((t) => (t.to === filterAddress || t.contractAddress == filterAddress))
+          let toTransactions = value.transactions.filter((t) => (t.to.toLowerCase() === filterAddress.toLowerCase() || t.contractAddress.toLowerCase() == filterAddress.toLowerCase()))
           resTransactions = resTransactions.concat(toTransactions)
         }
       }
