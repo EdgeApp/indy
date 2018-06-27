@@ -40,8 +40,8 @@ export class Transaction {
     this.hash = web3Transaction.hash
     this.nonce = web3Transaction.nonce
     this.transactionIndex = web3Transaction.transactionIndex
-    this.from = web3Transaction.from.toLowerCase()
-    this.to = web3Transaction.to.toLowerCase()
+    this.from = web3Transaction.from ? web3Transaction.from.toLowerCase() : web3Transaction.from
+    this.to = web3Transaction.to ? web3Transaction.to.toLowerCase() : web3Transaction.to
     this.handleLogs(transactionReceipt)
 
     this.value = web3Transaction.value
