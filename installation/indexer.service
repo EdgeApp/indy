@@ -4,8 +4,7 @@ After=network.target
 
 [Service]
 User=edgy
-WorkingDirectory=/datadrive/supernode/indy/
-ExecStart=npm run dev-index
+ExecStart=/datadrive/supernode/indy/runindexer.sh
 TimeoutSec=30
 Restart=on-failure
 RestartSec=30
