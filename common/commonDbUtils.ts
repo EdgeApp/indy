@@ -360,7 +360,14 @@ export async function initAllDBS (limit: number) {
 }
 
 function makeDBName(element: any) {
-  return 'supernodedb-' + element.start.toString() + '-' + element.end.toString()
+  return 'supernodedb-' + padDBName(element.start.toString()) + '-' + padDBName(element.end.toString())
+}
+
+function padDBName(dbName: string) {
+  while (dbName.length < 10) {
+    dbName = '0' + dbName;
+  }
+  return dbName
 }
 
 export async function initDB (DBName : string) {
@@ -512,7 +519,7 @@ export async function addViewsAsync (dbName: string) : Promise<void> {
   dbViews[consts.destinationDocBlocks] =
   {
     map: function (doc) {
-      if (doc.to) {
+      if (doc.destination) {
         emit([doc.destination, doc.blockNumber], null)
       }
     }
