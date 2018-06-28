@@ -20,6 +20,7 @@ process.on('uncaughtException', function (err) {
 const onStopRequest = async () => {
   logger.info("Caught interrupt signal")
   await indexerTransactions.stopIndex()
+  logger.info("Indexer stopped, exit app")
   process.exit();
 }
 
