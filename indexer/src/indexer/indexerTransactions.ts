@@ -258,6 +258,7 @@ export class IndexerTransactions extends EventEmitter {
       logger.info(`indexBlockRangeTransactions, total transactions so far in this run ${this.transactionCount}.`)
       if(!this.stop) {
         await this.saveTransactions(transactions, startBlock, endBlock)
+        return true
       }
     } catch (error) {
       logger.error(`indexBlockRangeTransactions error in blocks ${startBlock} - ${endBlock - 1}, abort`)
