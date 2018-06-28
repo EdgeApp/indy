@@ -1,4 +1,4 @@
-
+import * as utils from './../../common/utils'
 export class Transaction {
 
   _id: string
@@ -82,11 +82,12 @@ export class Transaction {
         // this topic if token tranfer code
         if(log.topics[0] == '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') {
           // this is the address that the token was sent
-          this.destination = log.topics[2].toLowerCase()
+          const unpadAddress = utils.unpadAddress(log.topics[2].toLowerCase())
+          this.destination = unpadAddress
           this.data = log.data
           break
         }
-      } 
+      }
     }
     this.logs = logs
   }
