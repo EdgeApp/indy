@@ -178,6 +178,9 @@ export async function getAccountTransactionsBlockRangeAllDBsAsync (account: stri
   // loop on all dbs untill limit reached
   let DB = await calcDBNameListForBlockRangeFetch(startBlock, endBlock)
 
+  // important! we are working only in lower case - db save all in lowercase
+  account = account.toLowerCase()
+
   // for each db:
   // get FROM and TO
   // sort
@@ -190,8 +193,12 @@ export async function getAccountTransactionsBlockRangeAllDBsAsync (account: stri
     if(query == AccountQuery.ALL) {
       let resFrom = await getAccountTransactionsBlockRangeAsync(dbName, consts.fromDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
       let resTo = await getAccountTransactionsBlockRangeAsync(dbName, consts.toDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
+      // not sure if destination need to be include here
+      // let resDest = await getAccountTransactionsBlockRangeAsync(dbName, consts.destinationDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
+
       result = result.concat(resFrom)
       result = result.concat(resTo)
+      // result = result.concat(resDest)
 
       // sort results by block number
       result.sort((transactionA, transactionB) => {
@@ -237,6 +244,10 @@ export async function getAccountContractTransactionsBlockRangeAllDBsAsync (accou
   // loop on all dbs untill limit reached
   let DB = await calcDBNameListForBlockRangeFetch(startBlock, endBlock)
 
+  // important! we are working only in lower case - db save all in lowercase
+  account = account.toLowerCase()
+  contractAddress = contractAddress.toLowerCase()
+
   // for each db:
   // get FROM and TO
   // sort
@@ -249,11 +260,15 @@ export async function getAccountContractTransactionsBlockRangeAllDBsAsync (accou
     if(query == AccountQuery.ALL) {
       let resFrom = await getAccountTransactionsBlockRangeAsync(dbName, consts.fromDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
       let resTo = await getAccountTransactionsBlockRangeAsync(dbName, consts.toDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
+      let resDest = await getAccountTransactionsBlockRangeAsync(dbName, consts.destinationDocBlocks, consts.fixedViewName, account, startBlock, endBlock, limitTransactions)
+
 
       let tempFrom = filterContractByBlocksAndLimit(startBlock, endBlock, contractAddress, resFrom, limitTransactions)
       result = result.concat(tempFrom)
       let tempTo = filterContractByBlocksAndLimit(startBlock, endBlock, contractAddress, resTo, limitTransactions)
       result = result.concat(tempTo)
+      let tempDest = filterContractByBlocksAndLimit(startBlock, endBlock, contractAddress, resDest, limitTransactions)
+      result = result.concat(tempDest)
 
       // sort results by block number
       result.sort((transactionA, transactionB) => {
@@ -279,7 +294,9 @@ function filterContractByBlocksAndLimit(startBlock: number, endBlock: number, co
   let result = []
   for (let index = 0; index < resultToFilter.length && numInserterd < limit; index++) {
     let transaction = resultToFilter[index]
-    if ((contractAddress === transaction.to || contractAddress === transaction.contractAddress || contractAddress === transaction.from)
+    if ((contractAddress === transaction.to ||
+         contractAddress === transaction.contractAddress ||
+         contractAddress === transaction.from)
         && ((startBlock != undefined && endBlock != undefined &&
           (transaction.blockNumber >= startBlock && transaction.blockNumber <= endBlock)) ||
           (startBlock === undefined && endBlock === undefined))) {
@@ -309,7 +326,7 @@ async function getAccountTransactionsBlockRangeAsync (db: any, doc: string, view
         logger.info(`getAccountTransactionsBlocksAsync from db: ${db} result count: ${result.length} for address ${account}`)
         resolve(result)
       } else {
-        //logger.error(err)
+        logger.error(err)
         reject(new Error(`Error reject from db: ${db} getAccountTransactionsBlocksAsync account: ${account}`))
       }
     })
@@ -585,6 +602,15 @@ export async function refreshAccountToBlocksTransactionsAsync (account: string, 
   return getAccountTransactionsAsync(dbName, consts.toDocBlocks, consts.fixedViewName, account, limitTransactions)
 }
 
+// get account by DEST view
+export async function refreshAccountDestinationBlocksTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
+  let dbName = await calcDBNameForBlockRange(endBlock)
+  logger.info(`getAccountDestinationTransactionsAsync dbName: ${dbName} for address ${account}, endBlock ${endBlock} `)
+  return getAccountTransactionsAsync(dbName, consts.destinationDocBlocks, consts.fixedViewName, account, limitTransactions)
+}
+
+
+// NOT in use in db filter
 // get account by FROM view
 export async function refreshAccountFromTransactionsAsync (account: string, endBlock: number, limitTransactions: number = 10000) : Promise<Array<any>> {
   let dbName = await calcDBNameForBlockRange(endBlock)
