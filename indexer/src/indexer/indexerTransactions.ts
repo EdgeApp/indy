@@ -6,6 +6,7 @@ import { IndexerSettings } from '../indexer/indexerSettings'
 import { configuration } from '../config/config'
 import { Transaction } from '../../../common/models/transaction'
 import { SortedMap } from 'collections/sorted-map'
+import * as consts from '../../../common/consts'
 
 const Web3 = require('web3')
 
@@ -302,7 +303,7 @@ export class IndexerTransactions {
       let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
       logger.info(`live update elpase sec: ${elapsedSeconds}`)
 
-      let nextFetch = (15 - elapsedSeconds) * 1000
+      let nextFetch = (consts.liveRefreshDeltaSec - elapsedSeconds) * 1000
 
       logger.info(`live update indexSetttings`)
       this.indexSetttings.lastBlock = lastSavedBlock
