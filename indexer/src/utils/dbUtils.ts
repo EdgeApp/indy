@@ -108,6 +108,10 @@ export async function refreshViews (account: string, startBlock: number) {
       logger.error(`Timeout refreshAccountToBlocksTransactionsAsync, index in process, ignore error ${account}`)
       logger.info('************************************************************************************************** ')
     })
+    commonDbUtils.refreshAccountDestinationBlocksTransactionsAsync(account, startBlock).catch((error) => {
+      logger.error(`Timeout refreshAccountDestinationBlocksTransactionsAsync, index in process, ignore error ${account}`)
+      logger.info('************************************************************************************************** ')
+    })
   }
 }
 
