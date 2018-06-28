@@ -43,7 +43,7 @@ function initializeLogging (app) {
     json: true,
     timestamp: true,
     maxsize: 5 * 1024 * 1024, // 5 MB
-    maxFiles: 10,
+    // maxFiles: 10,  don't limit logs
     colorize: false
   })
 

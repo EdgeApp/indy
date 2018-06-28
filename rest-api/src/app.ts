@@ -33,7 +33,7 @@ if(consts.useSsl) {
   }
     https.createServer(options, app).listen(configuration.Port, function() {
       logger.info(`super node indexer listening on port ${configuration.Port}!`)
-  })  
+  })
 } else {
     http.createServer(app).listen(configuration.Port, function(){
       logger.info(`super node indexer listening on port ${configuration.Port}!`)

@@ -14,7 +14,7 @@ export function normalizeAddress (address: string) {
 export function unpadAddress (address: string): string {
   const normalizedAddress = normalizeAddress(address)
   const unpadded = normalizedAddress.slice(24)
-  const out = '0x'+ unpadded
+  const out = '0x' + unpadded
   return out
 }
 

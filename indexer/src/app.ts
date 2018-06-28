@@ -7,6 +7,7 @@ import * as yargs from 'yargs'
 import { configuration } from './config/config'
 import { IndexerTransactions } from './indexer/indexerTransactions'
 
+
 let app = express()
 logging.load(app)
 
@@ -15,16 +16,27 @@ process.on('uncaughtException', function (err) {
   logger.error(err.stack)
 })
 
+
+const onStopRequest = async () => {
+  logger.info("Caught interrupt signal")
+  await indexerTransactions.stopIndex()
+  process.exit();
+}
+
+process.on('SIGINT', onStopRequest)
+process.on('SIGQUIT', onStopRequest)
+process.on('SIGTERM', onStopRequest)
+
+
 configuration.readCommandLineArgs(yargs.argv)
 
 applicationRoutes.load(app)
 
 let indexerTransactions = new IndexerTransactions()
 
-
 db.CreateDataBases().then(async () => {
   if(yargs.argv.start && yargs.argv.end)
-    logger.info(`Start block parameter ${yargs.argv.start}, end block parameter ${yargs.argv.end}`)  
+    logger.info(`Start block parameter ${yargs.argv.start}, end block parameter ${yargs.argv.end}`)
   await indexerTransactions.startIndexerProcess(yargs.argv.start, yargs.argv.end)
   //await indexerTransactions.startLiveIndexerProcess()
 })

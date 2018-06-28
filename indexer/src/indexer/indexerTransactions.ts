@@ -2,17 +2,20 @@ import * as logger from 'winston'
 import * as blockchainUtils from '../utils/blockchainUtils'
 import * as dbUtils from '../utils/dbUtils'
 import * as utils from '../../../common/utils'
+import * as consts from '../../../common/consts'
 import { IndexerSettings } from '../indexer/indexerSettings'
 import { configuration } from '../config/config'
 import { Transaction } from '../../../common/models/transaction'
 import { SortedMap } from 'collections/sorted-map'
-import * as consts from '../../../common/consts'
+import { EventEmitter} from 'events'
 
 const Web3 = require('web3')
 
 // call to handle all indexing
-export class IndexerTransactions {
+export class IndexerTransactions extends EventEmitter {
+
   constructor () {
+    super()
     this.web3 = new Web3()
     this.web3.setProvider(configuration.provider)
     this.transactionCount = 0
@@ -25,6 +28,9 @@ export class IndexerTransactions {
   transactionCount : number
   // save the live blocks before saving them to history
   liveBlocksTransactionsMap: SortedMap<number, { transactions: Transaction[], blockHash :string }>
+  // when true, stop all work
+  stop: boolean = false
+
   // start procees, do first block range, then take next availble range
   async startIndexerProcess (startBlock: number, endBlock: number) {
     logger.info('startIndexerProcess')
@@ -39,9 +45,18 @@ export class IndexerTransactions {
     logger.info(`**    duration in sec: ${totalElapsedSeconds}                                **`)
     logger.info('******************************************************************************')
     // if not asked for indexing only a specific range from command line parameter, start indexing live blocks
-    if (!this.indexSetttings.lastBlockToIndex) {
+    if (!this.stop && !this.indexSetttings.lastBlockToIndex) {
       await this.startLiveIndexerProcess()
     }
+    logger.info('******************************************************************************')
+    logger.info('**    indexer stopped.                                                      **')
+    logger.info(`**    last saved block: ${this.indexSetttings.lastBlock}                    **`)
+    logger.info('******************************************************************************')
+
+    logger.info(`saved indexSetttings: ${JSON.stringify(this.indexSetttings)}`)
+    logger.info(`sending stopEvent`)
+
+    this.emit('stopEvent')
   }
 
   private async initIndexSetttings(startBlock: number, lastBlockToIndex: number) : Promise<void> {
@@ -122,8 +137,9 @@ export class IndexerTransactions {
     let done = false
     // for all history blocks, up to the live MaxEphemeralForkBlocks blocks - index in chunks
     try {
-      while ((!done && this.indexSetttings.endBlock <= highestBlockNumberToIndex) ||
-        (this.indexSetttings.lastBlockToIndex && this.indexSetttings.endBlock < this.indexSetttings.lastBlockToIndex)) {
+      while (!this.stop &&
+        ((!done && this.indexSetttings.endBlock <= highestBlockNumberToIndex) ||
+        (this.indexSetttings.lastBlockToIndex && this.indexSetttings.endBlock < this.indexSetttings.lastBlockToIndex))) {
         let startTime = process.hrtime()
         // index block chunk
         await this.startIndex(this.indexSetttings.lastBlock, this.indexSetttings.endBlock)
@@ -180,23 +196,25 @@ export class IndexerTransactions {
     try {
       logger.info('***********************************************************************')
       logger.info(`startIndex method, startBlock # ${startBlock} to endBlock # ${endBlock - 1}`)
-      while (startBlock < endBlock) {
+      while (!this.stop && startBlock < endBlock) {
         let start = startBlock
         let end = ((startBlock + configuration.BlockStep) <= endBlock) ? startBlock + configuration.BlockStep : endBlock
 
         let startTime = process.hrtime()
-        await this.indexBlockRangeTransactions(start, end)
-        let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
-        logger.info(`startIndex method, ${configuration.BlockStep} blocks, duration in sec: ${elapsedSeconds}`)
+        let success = await this.indexBlockRangeTransactions(start, end)
+        if(success) {
+          let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
+          logger.info(`startIndex method, ${configuration.BlockStep} blocks, duration in sec: ${elapsedSeconds}`)
 
-        startBlock += configuration.BlockStep
-        if (startBlock >= endBlock) {
-          startBlock = endBlock
+          startBlock += configuration.BlockStep
+          if (startBlock >= endBlock) {
+            startBlock = endBlock
+          }
+
+          this.indexSetttings.lastBlock = end
+          await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+          logger.info('***********************************************************************')
         }
-
-        this.indexSetttings.lastBlock = end
-        await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
-        logger.info('***********************************************************************')
       }
       // make sure to trigger views indexing every 10,000 blocks - only on history indexing.
       // do not wait for this call, let it run at the backgound. Ignore timeouts.
@@ -208,18 +226,39 @@ export class IndexerTransactions {
     }
   }
 
+  stopIndex = async () => {
+    logger.info('*****************************************************************************************************************')
+    logger.info(`************                     stopIndex - stop everything                                           **********`);
+    logger.info('*****************************************************************************************************************')    
+    this.stop = true
+    blockchainUtils.stopTransactions()
+    return new Promise((resolve, reject) => {
+      this.once('stopEvent', (e) => {
+        logger.info('got stopEvent, resolve awaited promise')
+        resolve(e) // done
+      })
+    })
+  }
+
+
   // index by transactions
-  async indexBlockRangeTransactions (startBlock: number, endBlock: number) : Promise<void> {
+  async indexBlockRangeTransactions (startBlock: number, endBlock: number) : Promise<boolean> {
     try {
       let transactions = await blockchainUtils.getBlockTransactionsAsync(startBlock, endBlock)
       if (!transactions) {
+        if(this.stop) {
+          logger.info(`indexBlockRangeTransactions stopped`)
+          return false
+        }
         logger.error('blockchainUtils.getBlockTransactionsAsync return null, abort')
         throw (new Error('blockchainUtils.getBlockTransactionsAsync return null, abort.'))
       }
       logger.info(`indexBlockRangeTransactions ${transactions.length} transactions returned from block #${startBlock} to block #${endBlock - 1}.`)
       this.transactionCount += transactions.length
       logger.info(`indexBlockRangeTransactions, total transactions so far in this run ${this.transactionCount}.`)
-      await this.saveTransactions(transactions, startBlock, endBlock)
+      if(!this.stop) {
+        await this.saveTransactions(transactions, startBlock, endBlock)
+      }
     } catch (error) {
       logger.error(`indexBlockRangeTransactions error in blocks ${startBlock} - ${endBlock - 1}, abort`)
       logger.error( error)
@@ -280,7 +319,7 @@ export class IndexerTransactions {
     let elapsedMapSeconds = utils.parseHrtimeToSeconds(process.hrtime(startMapTime))
     logger.info(`init startLiveIndexerProcess blockchainUtils.getBlockTransactionsMapAsync sec: ${elapsedMapSeconds}`)
 
-    while (true) {
+    while (!this.stop && true) {
       let startTime = process.hrtime()
 
       logger.info(`************************************************`)

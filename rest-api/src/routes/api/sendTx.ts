@@ -21,18 +21,6 @@ router.get('/sendTx/:signedTransaction', async (req, res, next) => {
   let status = 0
   let message = 'FAIL'
 
-  // if (transaction) {
-  //   try {
-  //     result = raw ? transaction : fullTransaction
-  //     message = 'OK'
-  //     status = 1
-  //   } catch (error) {
-  //     message = 'FAIL'
-  //     result = null
-  //     logger.info(error)
-  //   }
-  // }
-
   return res.json(
     {
       'status': status,

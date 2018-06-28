@@ -12,6 +12,13 @@ const Web3 = require('web3')
 const web3 = new Web3()
 web3.setProvider(configuration.provider)
 
+var stop = false
+
+export function stopTransactions(){
+  stop = true
+}
+
+
 //*********************************************************** */
 //                  History METHODS
 //*********************************************************** */
@@ -21,7 +28,7 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
   let transactions = []
   let startIndex = startBlock
   try {
-    while (startIndex < endBlock) {
+    while (!stop && startIndex < endBlock) {
       let blocksPromises = []
       let index
       let startTime = process.hrtime()
@@ -29,6 +36,10 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
       for (index = 0; index < configuration.BlockReqeusts && startIndex < endBlock; index++) {
         // fetch full block, include transactions
         blocksPromises.push(web3.eth.getBlock(startIndex++, true))
+      }
+      if(stop) {
+        logger.info(`getBlockTransactionsAsync stopped`)
+        break
       }
       logger.info(`getBlockTransactionsAsync waiting for blocks #${startIndex - index} - #${startIndex - 1} requests`)
       // wait for blocks
@@ -39,6 +50,10 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
       let startTimeTransactions = process.hrtime()
       let transactionCount = 0
       for (let blockIndex = 0; blockIndex < resBlocks.length;) {
+        if(stop) {
+          logger.info(`getBlockTransactionsAsync stopped`)
+          break
+        }
         let block = resBlocks[blockIndex]
         if (block) {
           try {
@@ -63,8 +78,13 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
     logger.error(error)
     return null
   }
-  logger.info(`total transaction ${transactions.length} in block #${startBlock} to block #${endBlock - 1}.`)
-  return transactions
+  if(stop) {
+    logger.info(`getBlockTransactionsAsync stopped, return null`)
+    return null
+  } else {
+    logger.info(`total transaction ${transactions.length} in block #${startBlock} to block #${endBlock - 1}.`)
+    return transactions
+  }
 }
 
 // fetch transactions body for each block
