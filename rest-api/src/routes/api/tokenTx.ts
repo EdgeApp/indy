@@ -102,11 +102,13 @@ function updateTransactonConfirmations(resultFilterdBlocks: any[], highestBlockN
 function filterByBlocksAndLimit(startBlock: number, endBlock: number, resultFrom: Array<Transaction>, limit: number,
                                 result: Array<Transaction>, highestBlockNumber: number, contractAddress : string) {
   let numInserterd = 0;
+  contractAddress = utils.toLowerCaseSafe(contractAddress)
+
   for (let index = 0; index < resultFrom.length && numInserterd < limit; index++) {
     let transaction = resultFrom[index]
-    if ((contractAddress.toLowerCase() === transaction.to.toLowerCase() ||
-        contractAddress.toLowerCase() === transaction.contractAddress.toLowerCase() ||
-        contractAddress.toLowerCase() === transaction.from.toLowerCase())
+    if ((contractAddress === utils.toLowerCaseSafe(transaction.to) ||
+        contractAddress === utils.toLowerCaseSafe(transaction.contractAddress) ||
+        contractAddress === utils.toLowerCaseSafe(transaction.from))
        && ((startBlock != undefined && endBlock != undefined &&
           (transaction.blockNumber >= startBlock && transaction.blockNumber <= endBlock)) ||
           (startBlock === undefined && endBlock === undefined))) {

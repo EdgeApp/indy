@@ -1,5 +1,6 @@
 import * as logger from 'winston'
 import * as consts from './consts'
+import * as utils from  '../common/utils'
 import { dbHandler } from './couchdb'
 import { Transaction } from './models/transaction'
 import { configuration } from './config'
@@ -179,7 +180,7 @@ export async function getAccountTransactionsBlockRangeAllDBsAsync (account: stri
   let DB = await calcDBNameListForBlockRangeFetch(startBlock, endBlock)
 
   // important! we are working only in lower case - db save all in lowercase
-  account = account.toLowerCase()
+  account = utils.toLowerCaseSafe(account)
 
   // for each db:
   // get FROM and TO
@@ -245,8 +246,8 @@ export async function getAccountContractTransactionsBlockRangeAllDBsAsync (accou
   let DB = await calcDBNameListForBlockRangeFetch(startBlock, endBlock)
 
   // important! we are working only in lower case - db save all in lowercase
-  account = account.toLowerCase()
-  contractAddress = contractAddress.toLowerCase()
+  account = utils.toLowerCaseSafe(account)
+  contractAddress = utils.toLowerCaseSafe(contractAddress)
 
   // for each db:
   // get FROM and TO

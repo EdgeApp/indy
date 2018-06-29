@@ -1,5 +1,6 @@
 import * as logger from 'winston'
 import * as express from 'express'
+import * as utils from '../../../../common/utils'
 
 const router = express.Router()
 
@@ -7,7 +8,7 @@ router.get('/liveBlocks/:address/:fromto', async (req, res, next) => {
   try {
     let indexderLive = req.app.get('indexerTransactions')
     let liveTransactions = indexderLive.liveBlocksTransactionsMap
-    let filterAddress = req.params.address
+    let filterAddress = utils.toLowerCaseSafe(req.params.address)
 
     let isAccount = req.params.fromto == 'account'
     let isTo = req.params.fromto == 'to'
@@ -30,11 +31,13 @@ router.get('/liveBlocks/:address/:fromto', async (req, res, next) => {
     liveTransactions.forEach(function (value, key, mapObj) {
       if (filterAddress) {
         if(isAccount || isFrom) {
-          let fromTransactions = value.transactions.filter((t) => t.from.toLowerCase() === filterAddress.toLowerCase())
+          let fromTransactions = value.transactions.filter((t) => utils.toLowerCaseSafe(t.from) === filterAddress)
           resTransactions = resTransactions.concat(fromTransactions)
         }
         if(isAccount || isTo) {
-          let toTransactions = value.transactions.filter((t) => (t.to.toLowerCase() === filterAddress.toLowerCase() || t.contractAddress.toLowerCase() == filterAddress.toLowerCase()))
+          let toTransactions = value.transactions.filter((t) => {
+            return (utils.toLowerCaseSafe(t.to) === filterAddress || utils.toLowerCaseSafe(t.contractAddress) == filterAddress)
+          })
           resTransactions = resTransactions.concat(toTransactions)
         }
       }

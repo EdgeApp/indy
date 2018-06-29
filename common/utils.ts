@@ -26,3 +26,12 @@ export function padAddress (address: string): string {
   return out
 }
 
+
+export function toLowerCaseSafe (str: string) {
+  if(str) {
+    return str.toLowerCase()
+  } else {
+    return str
+  }
+}
+
