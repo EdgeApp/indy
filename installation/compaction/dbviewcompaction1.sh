@@ -6,9 +6,9 @@ echo Compacting 0-0000999,999 DB views
 USER="$1"
 PASSWORD="$2"
 
-curl -H "Content-Type: application/json" -X POST http://$USER:$PASSWORD@localhost:5984/supernodedb-0000000000-000099999/_compact/fromDocBlocks
-curl -H "Content-Type: application/json" -X POST http://$USER:$PASSWORD@localhost:5984/supernodedb-0000000000-000099999/_compact/toDocBlocks
-curl -H "Content-Type: application/json" -X POST http://$USER:$PASSWORD@localhost:5984/supernodedb-0000000000-000099999/_compact/destinationDocBlocks
+curl -H "Content-Type: application/json" -X POST http://$USER:$PASSWORD@localhost:5984/supernodedb-0000000000-0000099999/_compact/fromDocBlocks
+curl -H "Content-Type: application/json" -X POST http://$USER:$PASSWORD@localhost:5984/supernodedb-0000000000-0000099999/_compact/toDocBlocks
+curl -H "Content-Type: application/json" -X POST http://$USER:$PASSWORD@localhost:5984/supernodedb-0000000000-0000099999/_compact/destinationDocBlocks
 
 
 curl -H "Content-Type: application/json" -X POST http://$USER:$PASSWORD@localhost:5984/supernodedb-0000100000-0000199999/_compact/fromDocBlocks
