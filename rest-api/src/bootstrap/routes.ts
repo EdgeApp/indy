@@ -22,6 +22,9 @@ function setApplicationRoutes (app) {
   let transactionContoller = require('../routes/api/transaction')
   app.use('/mempool', transactionContoller)
 
+  let sendTransactionContoller = require('../routes/api/sendTx')
+  app.use('/mempool', sendTransactionContoller)
+
   let accountBalanceContoller = require('../routes/api/accountBalance')
   app.use('/account/balance', accountBalanceContoller)
 
