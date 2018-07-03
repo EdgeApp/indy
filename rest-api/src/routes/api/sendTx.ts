@@ -23,10 +23,9 @@ router.get('/sendtx/:signedTransaction', async (req, res, next) => {
   let status = 0
   let message = 'FAIL'
 
-  // for tests
-  // let signedTransaction = await kovanTrasaction()
-  let signedTransaction = req.params.signedTransaction
   try {
+    let signedTransaction = req.params.signedTransaction
+    logger.info(signedTransaction)
     let receipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction)
     if(receipt.status) {
       result = receipt.transactionHash
@@ -35,8 +34,8 @@ router.get('/sendtx/:signedTransaction', async (req, res, next) => {
       logger.info(`receipt ok:`)
       logger.info(receipt)
     } else {
-      logger.info(`receipt error:`)
-      logger.info(receipt)
+      logger.error(`receipt error:`)
+      logger.error(receipt)
     }
   } catch (error) {
     logger.info(error.message)
@@ -56,14 +55,14 @@ const kovanTrasaction  = async ()=> {
 
   const keystore = await readFile('/home/adys/Sources/keystorekovan.json')
   const keystoreJson = JSON.parse(keystore)
-  const decryptedAccount = web3.eth.accounts.decrypt(keystoreJson, 'putkovanpasshere');
+  const decryptedAccount = web3.eth.accounts.decrypt(keystoreJson, 'password');
 
   const  rawTransaction = {
-    "from": '0x009d7113048A319b71E7f25a43A36f1438C1b096',
-    "to": '0x00C55EEBE4d5D98D5CD20E11C1023Cd1aB9C631D',
-    "value": web3.utils.toHex(web3.utils.toWei("0.001", "ether")),
-    "gas": 200000,
-    "chainId": 42
+    'from': '0x009d7113048A319b71E7f25a43A36f1438C1b096',
+    'to': '0x00C55EEBE4d5D98D5CD20E11C1023Cd1aB9C631D',
+    'value': web3.utils.toHex(web3.utils.toWei("0.001", "ether")),
+    'gas': 200000,
+    'chainId': 42
   }
 
   const signedTransactionTest = await decryptedAccount.signTransaction(rawTransaction)
