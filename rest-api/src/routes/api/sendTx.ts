@@ -26,7 +26,7 @@ router.get('/sendtx/:signedTransaction', async (req, res, next) => {
   try {
     let signedTransaction = req.params.signedTransaction
     logger.info(signedTransaction)
-    let receipt = await web3.eth.sendSignedTransaction(signedTransaction.rawTransaction)
+    let receipt = await web3.eth.sendSignedTransaction(signedTransaction)
     if(receipt.status) {
       result = receipt.transactionHash
       status = 1
