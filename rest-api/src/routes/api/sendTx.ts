@@ -21,22 +21,15 @@ router.get('/sendtx/:signedTransaction', async (req, res, next) => {
 
   let result = null
   let status = 0
-  let message = 'FAIL'
+  let message = 'OK'
 
   try {
     let signedTransaction = req.params.signedTransaction
     logger.info(signedTransaction)
-    let receipt = await web3.eth.sendSignedTransaction(signedTransaction)
-    if(receipt.status) {
-      result = receipt.transactionHash
-      status = 1
-      message = 'OK'
-      logger.info(`receipt ok:`)
-      logger.info(receipt)
-    } else {
-      logger.error(`receipt error:`)
-      logger.error(receipt)
-    }
+    web3.eth.sendSignedTransaction(signedTransaction).on('receipt', logger.info)
+
+    status = 1
+    message = 'OK'
   } catch (error) {
     logger.info(error.message)
     message = error.message
