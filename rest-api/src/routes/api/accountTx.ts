@@ -27,7 +27,7 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
 
     // startBlock and endBlock parameters
     let startBlock = req.params.startBlock != undefined ? parseInt(req.params.startBlock) : 0
-    let endBlock = req.params.endBlock != undefined ?parseInt(req.params.endBlock) : highestBlockNumber
+    let endBlock = (req.params.endBlock != undefined &&  parseInt(req.params.endBlock) <= highestBlockNumber) ? parseInt(req.params.endBlock) : highestBlockNumber
     endBlock = endBlock <= highestBlockNumber ? endBlock : highestBlockNumber
     // check start and end block validity
     if (startBlock > endBlock ||
