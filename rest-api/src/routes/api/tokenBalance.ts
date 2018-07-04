@@ -36,9 +36,10 @@ router.get('/:address/:contractAddress', async (req, res, next) => {
 
     if (callResult) {
       // Convert the result to a usable number string
-      var tokens = web3.utils.toBN(callResult).toString();
+      balance = web3.utils.toBN(callResult).toString()
       // Change the string to be in Ether not Wei
-      balance =  web3.utils.fromWei(tokens, 'ether')
+      // balance =  web3.utils.fromWei(tokens, 'ether')
+      
     }
 
     logger.info(`retrieving balance for address ${address}.`)
