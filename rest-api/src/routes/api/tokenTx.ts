@@ -1,7 +1,7 @@
 import * as request from 'request-promise'
 import * as express from 'express'
 import * as logger from 'winston'
-import * as commonDbUtils from '../../../../common/commonDbUtils'
+import { dbUtils, AccountQuery}  from '../../../../common/commonDbUtilsCouchbase'
 import * as utils from '../../../../common/utils'
 import { configuration } from '../../config/config'
 import { Transaction } from '../../../../common/models/transaction'
@@ -56,7 +56,7 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
     if (leftLimit > 0) {
       // performe get contract query, limit results with "leftLimit"
 
-      let resultFrom = await fetchAccountContractTransactionsBlockRangeFromDB(req.params.address, req.params.contractAddress, startBlock, endBlock, leftLimit, highestBlockNumber, commonDbUtils.AccountQuery.ALL)
+      let resultFrom = await fetchAccountContractTransactions(req.params.address, req.params.contractAddress, startBlock, endBlock, leftLimit, highestBlockNumber, AccountQuery.ALL)
       updateTransactonConfirmations(resultFrom, highestBlock)
       result = result.concat(resultFrom)
     }
@@ -81,9 +81,9 @@ router.get('/:address/:contractAddress/:startBlock?/:endBlock?/:limit?', async (
 
 
 // DB filter methods
-async function fetchAccountContractTransactionsBlockRangeFromDB(address: string, contractAddress: string, startBlock: number, endBlock: number, limit: any, highestBlockNumber: number, query: commonDbUtils.AccountQuery) {
+async function fetchAccountContractTransactions(address: string, contractAddress: string, startBlock: number, endBlock: number, limit: any, highestBlockNumber: number, query: AccountQuery) {
   let startTimeBlocks = process.hrtime()
-  let resultFilterdBlocks = await commonDbUtils.getAccountContractTransactionsBlockRangeAllDBsAsync(address, contractAddress, startBlock, endBlock, query, limit)
+  let resultFilterdBlocks = await dbUtils.getAccountContractTransactionsAsync(address, contractAddress, startBlock, endBlock, query, limit)
 
   updateTransactonConfirmations(resultFilterdBlocks, highestBlockNumber)
   let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
@@ -95,7 +95,6 @@ function updateTransactonConfirmations(resultFilterdBlocks: any[], highestBlockN
   for (let index = 0; index < resultFilterdBlocks.length; index++) {
     let transaction = resultFilterdBlocks[index];
     transaction.confirmations = highestBlockNumber - transaction.blockNumber
-    delete transaction._id
   }
 }
 
@@ -115,7 +114,6 @@ function filterByBlocksAndLimit(startBlock: number, endBlock: number, resultFrom
 
       result.push(transaction);
       transaction.confirmations = highestBlockNumber - transaction.blockNumber;
-      delete transaction._id;
       numInserterd++;
     }
   }

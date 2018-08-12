@@ -1,6 +1,6 @@
 import * as logger from 'winston'
 import * as blockchainUtils from '../utils/blockchainUtils'
-import * as dbUtils from '../utils/dbUtils'
+import { DbUtils } from '../../../common/commonDbUtilsCouchbase'
 import * as utils from '../../../common/utils'
 import * as consts from '../../../common/consts'
 import { IndexerSettings } from '../indexer/indexerSettings'
@@ -19,6 +19,7 @@ export class IndexerTransactions extends EventEmitter {
     this.web3 = new Web3()
     this.web3.setProvider(configuration.provider)
     this.transactionCount = 0
+    this.dbUtils = new DbUtils()
   }
 
   web3: any
@@ -30,6 +31,9 @@ export class IndexerTransactions extends EventEmitter {
   liveBlocksTransactionsMap: SortedMap<number, { transactions: Transaction[], blockHash :string }>
   // when true, stop all work
   stop: boolean = false
+
+  dbUtils: DbUtils
+
 
   // start procees, do first block range, then take next availble range
   async startIndexerProcess (startBlock: number, endBlock: number) {
@@ -62,7 +66,7 @@ export class IndexerTransactions extends EventEmitter {
   private async initIndexSetttings(startBlock: number, lastBlockToIndex: number) : Promise<void> {
     logger.info('initIndexSetttings')
     try {
-      this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
+      this.indexSetttings = await this.dbUtils.getIndexerSettingsAsync('indexer')
       // in case we got parameters from command line
       if(startBlock != undefined) {
         logger.info(`initIndexSetttings parameters from command line, startBlock: ${startBlock}, lastBlockToIndex: ${lastBlockToIndex} `)
@@ -81,7 +85,7 @@ export class IndexerTransactions extends EventEmitter {
         }
         // check if index setttings has valid values
         await this.validateIndexSettings()
-        await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+        await this.dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
       } else {
         logger.info(`initIndexSetttings parameters from db`)
         if(this.indexSetttings.lastBlock ===  this.indexSetttings.endBlock) {
@@ -105,7 +109,7 @@ export class IndexerTransactions extends EventEmitter {
         this.indexSetttings.startBlock = 0 // no transactions before this block, we can index from here
         this.indexSetttings.lastBlock = 0
         this.indexSetttings.endBlock =+ configuration.BlockChunkSize
-        await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+        await this.dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
         logger.info(`IndexerTransactions init, index setting created, first start index from ${this.indexSetttings.lastBlock} to ${this.indexSetttings.endBlock}`)
       }
       else {
@@ -147,7 +151,7 @@ export class IndexerTransactions extends EventEmitter {
         logger.info(`indexHistory method, ${this.indexSetttings.endBlock - this.indexSetttings.startBlock} blocks, duration in sec: ${elapsedSeconds}`);
 
         // make sure to do last refresh
-        dbUtils.refreshViews('refreshDummyAccount', this.indexSetttings.endBlock - 1)
+        // dbUtils.refreshViews('refreshDummyAccount', this.indexSetttings.endBlock - 1)
 
         highestBlock = await this.web3.eth.getBlock('latest')
         highestBlockNumberToIndex = highestBlock.number - configuration.MaxEphemeralForkBlocks
@@ -212,13 +216,13 @@ export class IndexerTransactions extends EventEmitter {
           }
 
           this.indexSetttings.lastBlock = end
-          await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+          await this.dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
           logger.info('***********************************************************************')
         }
       }
       // make sure to trigger views indexing every 10,000 blocks - only on history indexing.
       // do not wait for this call, let it run at the backgound. Ignore timeouts.
-      dbUtils.refreshViews('refreshDummyAccount', endBlock - 1)
+      // dbUtils.refreshViews('refreshDummyAccount', endBlock - 1)
     } catch (error) {
       logger.error(`startIndex error in blocks ${startBlock} - ${endBlock}, abort!`)
       logger.error(error)
@@ -273,7 +277,7 @@ export class IndexerTransactions extends EventEmitter {
       while (transactions.length) {
         let transactionsToSave = transactions.splice(0, configuration.LimitTransactionBlukSave)
         try {
-          await dbUtils.saveTransactionsBulkAsync(transactionsToSave, startBlock, endBlock)
+          await this.dbUtils.saveTransactionsBulkAsync(transactionsToSave, startBlock, endBlock)
         } catch (error) {
           logger.error('saveTransactions - error in dbutils while saving transactions, abort')
           logger.error('error', error)
@@ -291,7 +295,7 @@ export class IndexerTransactions extends EventEmitter {
   // always save 12 live blocks to avoid indexing reorg blocks
   // save older blocks
   async startLiveIndexerProcess () : Promise<void> {
-    this.indexSetttings = await dbUtils.getIndexerSettingsAsync('settingsid')
+    this.indexSetttings = await this.dbUtils.getIndexerSettingsAsync('indexer')
     let lastSavedBlock = this.indexSetttings.lastBlock
     let lastHighestBlockNumber = this.indexSetttings.lastBlock
     let highestBlock = await this.web3.eth.getBlock('latest')
@@ -353,12 +357,12 @@ export class IndexerTransactions extends EventEmitter {
       logger.info(`live lastSavedBlock ${lastSavedBlock}`)
       logger.info(`live highestBlock.number ${highestBlock.number}`)
 
-      await dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+      await this.dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
 
       if(lastSavedBlock - lastRefreshViewBlock > 100) {
         // make sure to trigger views indexing every 1000 blocks
         // do not wait for this call, let it run at the backgound. Ignore timeouts.
-        dbUtils.refreshViews('refreshLiveDummyAccount', lastSavedBlock)
+        // dbUtils.refreshViews('refreshLiveDummyAccount', lastSavedBlock)
         lastRefreshViewBlock = lastSavedBlock
       }
       logger.info(`invoke again in :${nextFetch} sec`)

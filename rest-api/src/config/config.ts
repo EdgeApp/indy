@@ -7,7 +7,7 @@ const web3 = require('web3')
 const net = require('net')
 
 export class Config {
-  _provider: any
+  _httpProvider: any
   _ipcProvider: any
   _ipcPath: string
   _useIpc: boolean
@@ -19,7 +19,7 @@ export class Config {
   constructor () {
     this._ipcPath = consts.ipcPath
     this._ipcProvider = new web3.providers.IpcProvider(this._ipcPath, net)
-    this._provider = new web3.providers.HttpProvider(consts.httpProvider)
+    this._httpProvider = new web3.providers.HttpProvider(consts.httpProvider)
     this._port = consts.restPort
     this._useIpc = true
     this._dBUrl = consts.dBUrl
@@ -41,7 +41,7 @@ export class Config {
       }
 
       if (args.httpProvider) {
-        this._provider = new web3.providers.HttpProvider(args.httpProvider)
+        this._httpProvider = new web3.providers.HttpProvider(args.httpProvider)
         logger.info(`configure httpProvider from command line: ${args.httpProvider}`)
       }
 
@@ -58,16 +58,14 @@ export class Config {
 
   get useIpc () : boolean { return this._useIpc }
   get provider () {
-    return this.useIpc ? this._ipcProvider : this._provider
+    return this.useIpc ? this._ipcProvider : this._httpProvider
   }
 
   get DBUrl (): string { return this._dBUrl }
   get Port (): number { return this._port }
   get LogFileName (): string { return consts.restLogFileName }
   get MaxEphemeralForkBlocks (): number { return consts.maxEphemeralForkBlocks }
-  get FilterInMemory (): boolean { return consts.filterInMemory} 
-  get FilterInDB (): boolean { return consts.filterInDB} 
-  
+
 }
 
 export const configuration = new Config()

@@ -20,6 +20,8 @@
   "dependencies": {
     "@parity/api": "^2.1.22",
     "@types/async": "^2.0.49",
+    "@types/bluebird": "^3.5.22",
+    "@types/couchbase": "^2.1.30",
     "@types/express": "^4.11.1",
     "@types/request": "^2.47.0",
     "@types/request-promise": "^4.1.41",
@@ -27,7 +29,9 @@
     "@types/yargs": "^11.0.0",
     "async": "^2.6.0",
     "async-retry": "^1.2.1",
+    "bluebird": "^3.5.1",
     "collections": "^5.1.2",
+    "couchbase": "^2.5.0",
     "express": "^4.16.3",
     "express-winston": "^2.5.1",
     "flow-bin": "^0.63.1",

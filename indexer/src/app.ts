@@ -2,10 +2,10 @@ import * as express from 'express'
 import * as logging from './bootstrap/logging'
 import * as logger from 'winston'
 import * as applicationRoutes from './bootstrap/routes'
-import * as db from './bootstrap/db'
 import * as yargs from 'yargs'
 import { configuration } from './config/config'
 import { IndexerTransactions } from './indexer/indexerTransactions'
+import { dbUtils }  from '../../common/commonDbUtilsCouchbase'
 
 
 let app = express()
@@ -28,14 +28,14 @@ process.on('SIGINT', onStopRequest)
 process.on('SIGQUIT', onStopRequest)
 process.on('SIGTERM', onStopRequest)
 
-
 configuration.readCommandLineArgs(yargs.argv)
 
 applicationRoutes.load(app)
 
 let indexerTransactions = new IndexerTransactions()
 
-db.CreateDataBases().then(async () => {
+dbUtils.initDB().then(async () => {
+  app.set('dbUtils', dbUtils)
   if(yargs.argv.start && yargs.argv.end)
     logger.info(`Start block parameter ${yargs.argv.start}, end block parameter ${yargs.argv.end}`)
   await indexerTransactions.startIndexerProcess(yargs.argv.start, yargs.argv.end)

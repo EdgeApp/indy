@@ -16,7 +16,7 @@ router.get('/:address', async (req, res, next) => {
   let status = 0
   let message = 'FAIL'
 
-  try {  
+  try {
     let address = req.params.address
     let balance = await web3.eth.getBalance(address)
     logger.info(`retrieving balance for address ${address}.`)

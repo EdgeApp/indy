@@ -1,7 +1,7 @@
 
 export class IndexerSettings {
   constructor () {
-    this.id = 'settingsid' // for now, only one indexer support
+    this.id = 'indexer' // for now, only one indexer support
     this.lastBlock = 0
     this.startBlock = 0
     this.endBlock = 0

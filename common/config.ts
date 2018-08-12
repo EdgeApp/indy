@@ -1,23 +1,23 @@
 import * as consts from './consts'
 
-
 export class Config {
   _dBUrl: string
-  _settingsDbName: string
+  _bucketName: string
+  _bucketPassword: string
   constructor () {
-    this._settingsDbName = consts.settingDBName
     this._dBUrl = consts.dBUrl
+    this._bucketName = consts.bucketName
+    this._bucketPassword = consts.bucketPassword
   }
 
-  get SettingDBName (): string { return 'supernodesettingsdb' }
-  set SettingDBName (dbName: string) { this._settingsDbName = dbName }
-  
   get DBUrl (): string { return this._dBUrl }
   set DBUrl (dbUrl: string) { this._dBUrl = dbUrl }
 
-  get FilterInMemory   () : boolean {return consts.filterInMemory}
-  get FilterInDB   () : boolean {return consts.filterInDB}
-  
- }
+  get BucketName (): string { return this._bucketName }
+  set BucketName (bucketName: string) { this._bucketName = bucketName }
+
+  get BucketPassword (): string { return this._bucketPassword }
+  set BucketPassword (bucketPassword: string) { this._bucketPassword = bucketPassword }
+}
 
 export const configuration = new Config()

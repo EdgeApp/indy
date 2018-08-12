@@ -5,10 +5,11 @@ import * as https from 'https'
 import * as fs from 'fs'
 import * as logging from './bootstrap/logging'
 import * as logger from 'winston'
-import * as db from './bootstrap/db'
 import * as yargs from 'yargs'
 import * as consts from './../../common/consts'
-import {configuration} from './config/config'
+import { configuration } from './config/config'
+import { dbUtils }  from '../../common/commonDbUtilsCouchbase'
+
 
 let app = express()
 logging.load(app)
@@ -23,8 +24,9 @@ configuration.readCommandLineArgs(yargs.argv)
 applicationRoutes.load(app)
 
 app.set('config', configuration)
-
-db.initDB()
+dbUtils.initDB().then( () => {
+  app.set('dbUtils', dbUtils)
+})
 
 if(consts.useSsl) {
   var options = {

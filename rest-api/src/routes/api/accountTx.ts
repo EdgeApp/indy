@@ -2,7 +2,7 @@ import * as request from 'request-promise'
 import * as express from 'express'
 import * as logger from 'winston'
 import * as utils from '../../../../common/utils'
-import * as commonDbUtils from '../../../../common/commonDbUtils'
+import { dbUtils, AccountQuery } from '../../../../common/commonDbUtilsCouchbase'
 import { configuration } from '../../config/config'
 import { Transaction } from '../../../../common/models/transaction'
 
@@ -15,11 +15,12 @@ const router = express.Router()
 router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) => {
   try {
 
-    let totalStartTimeAccount = process.hrtime()
 
-    // for performance messure only
-    let filterInMemoryElapsedSeconds
-    let filterDBElapsedSeconds
+    // TODO: change to query
+    // TODO: handle parity error
+    // TODO: change return status
+    // TODO: add middle wares
+    let totalStartTimeAccount = process.hrtime()
 
     // highest block to calc confirmations
     let highestBlock = await web3.eth.getBlock('latest')
@@ -29,25 +30,26 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
     let startBlock = req.params.startBlock != undefined ? parseInt(req.params.startBlock) : 0
     let endBlock = req.params.endBlock != undefined ?parseInt(req.params.endBlock) : highestBlockNumber
     endBlock = endBlock <= highestBlockNumber ? endBlock : highestBlockNumber
+
     // check start and end block validity
     if (startBlock > endBlock ||
       startBlock < 0) {
       throw( new Error(`REST API - Error in blocks range, startBlock: ${startBlock}, endBlock: ${endBlock}`))
     }
     // calc the limit
-    let limit = req.params.limit && req.params.limit >= 10 && req.params.limit <= 10000 ? req.params.limit : 10000
+    let limit = req.params.limit && req.params.limit >= 1 && req.params.limit <= 10000 ? req.params.limit : 10000
 
     // account is for all, also from and to are supported
-    let accountQuery: commonDbUtils.AccountQuery
+    let accountQuery: AccountQuery
     switch (req.baseUrl) {
       case '/account':
-        accountQuery = commonDbUtils.AccountQuery.ALL
+        accountQuery = AccountQuery.ALL
         break;
       case '/from':
-        accountQuery = commonDbUtils.AccountQuery.FROM
+        accountQuery = AccountQuery.FROM
           break;
       case '/to':
-        accountQuery = commonDbUtils.AccountQuery.TO
+        accountQuery = AccountQuery.TO
         break;
     }
 
@@ -79,76 +81,15 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
     // if live didn't fill the limit, lets take more
     let leftLimit = limit - result.length
 
-    if (accountQuery == commonDbUtils.AccountQuery.ALL && leftLimit > 0) {
-      // performe "from" query, limit results with "leftLimit"
-      // add the results to "result" array after filtering and limiting
-      if(configuration.FilterInMemory) {
-        let startTimeBlocks = process.hrtime()
-        let resultAll = await commonDbUtils.getAccountTransactionsBlockRangeMemoryAllDBsAsync (req.params.address, startBlock, endBlock, commonDbUtils.AccountQuery.ALL, leftLimit)
-        updateTransactonConfirmations(resultAll, highestBlockNumber)
-        let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
-        result = result.concat(resultAll)
-        logger.info(`Filter in memory, elpased time in sec: ${totalElapsedSecondsBlocks}`)
-        filterInMemoryElapsedSeconds =   totalElapsedSecondsBlocks
-      }
-
-      if(configuration.FilterInDB) {
-        //Filter in DB
-        let startTimeBlocks = process.hrtime()
-        let resultAllDBfilter = await fetchAccountBlockRangeFromDB(req.params.address, startBlock, endBlock, leftLimit, highestBlockNumber, commonDbUtils.AccountQuery.ALL)
-        result = result.concat(resultAllDBfilter)
-        let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
-        logger.info(`Filter in DB, elpased time in sec: ${totalElapsedSecondsBlocks}`)
-        filterDBElapsedSeconds = totalElapsedSecondsBlocks
-      }
+    if (leftLimit > 0) {
+      let startTimeBlocks = process.hrtime()
+      let resultAllDBfilter = await fetchAccountTransactions(req.params.address, startBlock, endBlock, leftLimit, highestBlockNumber, accountQuery)
+      result = result.concat(resultAllDBfilter)
     }
 
-    if (accountQuery == commonDbUtils.AccountQuery.FROM && leftLimit > 0) {
-      // performe "from" query, limit results with "leftLimit"
-      // add the results to "result" array after filtering and limiting
-      if(configuration.FilterInMemory) {
-        let startTimeBlocks = process.hrtime()
-        let resultFrom = await commonDbUtils.getAccountTransactionsBlockRangeMemoryAllDBsAsync (req.params.address, startBlock, endBlock, commonDbUtils.AccountQuery.FROM, leftLimit)
-        updateTransactonConfirmations(resultFrom, highestBlockNumber)
-        let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
-        logger.info(`Filter in memory, elpased time in sec: ${totalElapsedSecondsBlocks}`)
-        result = result.concat(resultFrom)
-      }
-
-      if(configuration.FilterInDB) {
-        // Filter in DB
-        let startTimeBlocks = process.hrtime()
-        let resultFromDBFilter = await fetchAccountBlockRangeFromDB(req.params.address, startBlock, endBlock, leftLimit, highestBlockNumber, commonDbUtils.AccountQuery.FROM)
-        result = result.concat(resultFromDBFilter)
-        let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
-        logger.info(`Filter in DB, elpased time in sec: ${totalElapsedSecondsBlocks}`)
-      }
-    }
-
-    if (accountQuery == commonDbUtils.AccountQuery.TO && leftLimit > 0) {
-      // performe "to" query, limit results with "leftLimit"
-      // add the results to "result" array after filtering and limiting
-      if(configuration.FilterInMemory) {
-        let startTimeBlocks = process.hrtime()
-        let resultTo = await commonDbUtils.getAccountTransactionsBlockRangeMemoryAllDBsAsync (req.params.address, startBlock, endBlock, commonDbUtils.AccountQuery.TO, leftLimit)
-        updateTransactonConfirmations(resultTo, highestBlockNumber)
-        let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
-        logger.info(`Filter in memory, elpased time in sec: ${totalElapsedSecondsBlocks}`)
-        result = result.concat(resultTo)
-      }
-
-      if(configuration.FilterInDB) {
-        // Filter in DB
-        let startTimeBlocks = process.hrtime()
-        let resultToDBFilter = await fetchAccountBlockRangeFromDB(req.params.address, startBlock, endBlock, leftLimit, highestBlockNumber, commonDbUtils.AccountQuery.TO)
-        result = result.concat(resultToDBFilter)
-        let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
-        logger.info(`Filter in DB, elpased time in sec: ${totalElapsedSecondsBlocks}`)
-      }
-    }
 
     let totalElapsedSecondsAccount = utils.parseHrtimeToSeconds(process.hrtime(totalStartTimeAccount))
-    logger.info(`Total account query, elpased time in sec: ${totalElapsedSecondsAccount}`)
+    logger.info(`Total account query elpased time in sec: ${totalElapsedSecondsAccount}`)
 
     return res.json(
       {
@@ -157,8 +98,6 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
         'count': result.length,
         'includeLiveBlocks': liveBlocks,
         'totalElapsedSeconds': totalElapsedSecondsAccount,
-//        'filterInMemoryElapsedSeconds': filterInMemoryElapsedSeconds,
-//        'filterDBElapsedSeconds':  filterDBElapsedSeconds,
         'result': result
       })
   } catch (error) {
@@ -172,9 +111,9 @@ router.get('/:address/:startBlock?/:endBlock?/:limit?', async (req, res, next) =
 })
 
 // DB filter methods
-async function fetchAccountBlockRangeFromDB(address: string, startBlock: number, endBlock: number, limit: any, highestBlockNumber: number, query: commonDbUtils.AccountQuery) {
+async function fetchAccountTransactions(address: string, startBlock: number, endBlock: number, limit: any, highestBlockNumber: number, query: AccountQuery) {
   let startTimeBlocks = process.hrtime()
-  let resultFilterdBlocks = await commonDbUtils.getAccountTransactionsBlockRangeAllDBsAsync(address, startBlock, endBlock, query, limit)
+  let resultFilterdBlocks = await dbUtils.getAccountTransactionsAsync(address, startBlock, endBlock, query, limit)
   updateTransactonConfirmations(resultFilterdBlocks, highestBlockNumber)
   let totalElapsedSecondsBlocks = utils.parseHrtimeToSeconds(process.hrtime(startTimeBlocks))
   logger.info(`fetchFromAccountBlockRangeFromDB, elpased time in sec: ${totalElapsedSecondsBlocks}`)
@@ -185,7 +124,6 @@ function updateTransactonConfirmations(resultFilterdBlocks: any[], highestBlockN
   for (let index = 0; index < resultFilterdBlocks.length; index++) {
     let transaction = resultFilterdBlocks[index];
     transaction.confirmations = highestBlockNumber - transaction.blockNumber
-    delete transaction._id
   }
 }
 
@@ -198,7 +136,6 @@ function filterAndUpdateTransactionConfirmations(resultFrom: any[], limit: numbe
       (startBlock === undefined && endBlock === undefined)) {
       result.push(transaction)
       transaction.confirmations = highestBlockNumber - transaction.blockNumber
-      delete transaction._id
       numInserterd++
     }
   }

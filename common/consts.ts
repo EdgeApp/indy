@@ -1,28 +1,19 @@
 export {}
 
-// all the views has this name
-export const fixedViewName = 'view'
 
-// DB design doc names
-export const toDoc = 'toDoc'
-export const fromDoc = 'fromDoc'
-export const toDocBlocks = 'toDocBlocks'
-export const fromDocBlocks = 'fromDocBlocks'
-export const destinationDocBlocks = 'destinationDocBlocks'
-export const blockDoc = 'blockDoc'
-export const contractDoc = 'contractDoc'
+// DB info
+export const dBUrl = 'couchbase://localhost'
+export const bucketName = 'indy-transactions-bucket'
+export const bucketPassword = 'a9760b0a857c554a52b79a7565132a7a'
+export const transactionIndexName = 'toDocBlocks'
 
 
 // coinfiguration consts
 // export const ipcPath = '/datadrive/parity/data/io.parity.ethereum/jsonrpc.ipc'
 export const ipcPath = process.env['HOME'] + '/.local/share/io.parity.ethereum/jsonrpc.ipc'
 export const httpProvider = 'http://127.0.0.1:8545'
-export const dBUrl = 'http://admin:123456@localhost:5984'
 export const indexerPort = 3001
 export const restPort = 3000
-
-export const  dropsDBName = 'configsupernodedropsdb'
-export const  settingDBName = 'configsupernodesettingsdb'
 
 export const blockReqeusts = 100 // parity parallel block requests. can't be larger than blockstep.
 export const blockStep = 1000 // number of items to save to db in one time . be carefull in non bulk mode. can't be larger than chunksize
@@ -32,8 +23,6 @@ export const indexerLogFileName = 'supernode-indexer.log'
 export const restLogFileName = 'supernode-rest.log'
 export const logTimeStampConsole = true
 export const maxEphemeralForkBlocks = 12
-export const filterInMemory = false
-export const filterInDB = true
 export const liveRefreshDelta = 100
 export const liveRefreshDeltaSec = 15
 

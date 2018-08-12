@@ -1,7 +1,6 @@
 import * as utils from './../../common/utils'
 export class Transaction {
 
-  _id: string
   // block info
   blockNumber: number
   timeStamp: string
@@ -31,7 +30,6 @@ export class Transaction {
 
   constructor (web3Transaction: any, block: any, transactionReceipt: any) {
     // block
-    this._id = web3Transaction.hash
     this.blockNumber = block.number
     this.timeStamp = block.timestamp
     this.blockHash = block.hash
