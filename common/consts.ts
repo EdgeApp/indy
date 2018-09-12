@@ -4,13 +4,23 @@ export {}
 // DB info
 export const dBUrl = 'couchbase://localhost'
 export const bucketName = 'indy-transactions-bucket'
+export const liveBucketName = 'indy-live-bucket'
+
+// take this bucket pass using this command:
+// curl -u edgy:123456 http://localhost:8091/pools/default/buckets > info.txt
+// look into saslPassword value - this is the bucket password 
 export const bucketPassword = 'a9760b0a857c554a52b79a7565132a7a'
-export const transactionIndexName = 'toDocBlocks'
+
+export const liveBucketPassword = '715e3233e7a6ded14b492494f6ddd6cc'
+
+
 
 
 // coinfiguration consts
 // export const ipcPath = '/datadrive/parity/data/io.parity.ethereum/jsonrpc.ipc'
-export const ipcPath = process.env['HOME'] + '/.local/share/io.parity.ethereum/jsonrpc.ipc'
+export const ipcPath = '/home/adys/.ethereum/geth.ipc'
+
+//export const ipcPath = process.env['HOME'] + '/.local/share/io.parity.ethereum/jsonrpc.ipc'
 export const httpProvider = 'http://127.0.0.1:8545'
 export const indexerPort = 3001
 export const restPort = 3000

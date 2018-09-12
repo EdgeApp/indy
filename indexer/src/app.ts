@@ -5,7 +5,7 @@ import * as applicationRoutes from './bootstrap/routes'
 import * as yargs from 'yargs'
 import { configuration } from './config/config'
 import { IndexerTransactions } from './indexer/indexerTransactions'
-import { dbUtils }  from '../../common/commonDbUtilsCouchbase'
+import { dbUtils }  from '../../common/commonDbUtils'
 
 
 let app = express()

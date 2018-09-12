@@ -8,7 +8,7 @@ import * as logger from 'winston'
 import * as yargs from 'yargs'
 import * as consts from './../../common/consts'
 import { configuration } from './config/config'
-import { dbUtils }  from '../../common/commonDbUtilsCouchbase'
+import { dbUtils }  from '../../common/commonDbUtils'
 
 
 let app = express()

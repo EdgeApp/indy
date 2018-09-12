@@ -2,7 +2,7 @@ import * as request from 'request-promise'
 import * as express from 'express'
 import * as logger from 'winston'
 import * as utils from '../../../../common/utils'
-import { dbUtils, AccountQuery } from '../../../../common/commonDbUtilsCouchbase'
+import { dbUtils, AccountQuery } from '../../../../common/commonDbUtils'
 import { configuration } from '../../config/config'
 import { Transaction } from '../../../../common/models/transaction'
 

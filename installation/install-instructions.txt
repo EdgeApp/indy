@@ -11,7 +11,7 @@ bash <(curl https://get.parity.io -Lk)
 create data dir for parity
 
 /datadrive/parity/data/
-/datadrive/parity/log/
+/datadrive/parity/log/  - if this dir is missing parity will not run with the current toml file
 
 add parity config file
 /datadrive/parity/log/parityconfig.toml  *(look at parityconfig.toml example)

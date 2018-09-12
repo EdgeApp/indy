@@ -1,6 +1,6 @@
 import * as logger from 'winston'
 import * as retry from 'async-retry'
-import { dbUtils }  from '../../../common/commonDbUtilsCouchbase'
+import { dbUtils }  from '../../../common/commonDbUtils'
 import * as utils from '../../../common/utils'
 import { configuration } from '../config/config'
 import { Transaction } from '../../../common/models/transaction'
@@ -57,7 +57,10 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
         let block = resBlocks[blockIndex]
         if (block) {
           try {
+            let txstartTime = process.hrtime()
             let res = await getTransactionsFromBlockAsync(block)
+            let elapsedTxSeconds = utils.parseHrtimeToSeconds(process.hrtime(txstartTime))
+            logger.info(`getTransactionsFromBlockAsync for block: ${block.number}, txs: ${res.length}, duration in sec:, ${elapsedTxSeconds}`)
             if (res) {
               transactionCount += res.length
               transactions = transactions.concat(res)
@@ -86,6 +89,7 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
     return transactions
   }
 }
+
 
 // fetch transactions body for each block
 export async function getTransactionsFromBlockAsync (block): Promise<Array<Transaction>> {
@@ -225,4 +229,56 @@ export async function getBlockHeadersAsync (latestBlockNumber: number): Promise<
   let resBlocks = await Promise.all(blocksPromises)
   logger.info(`getBlockHeadersAsync fetch ${resBlocks.length} blocks`)
   return resBlocks
+}
+
+
+// get live blocks, save in map, block to its fetched transactions
+export async function saveBlockTransactionsToMemAsync (startBlock: number, endBlock: number): Promise<void> {
+  let startIndex = startBlock
+  let transactionCount = 0
+
+  logger.info(`saveBlockTransactionsToMemcAsync, get blocks, from ${startBlock} to ${endBlock}`)
+
+  // for all the block range, include the last block
+  while (startIndex <= endBlock) {
+    let blocksPromises = []
+
+    logger.info(`saveBlockTransactionsToMemcAsync, wait for promises`)
+
+    // async as BlockReqeusts config size
+    for (let index = 0; startIndex <= endBlock && index <= configuration.BlockReqeusts; index++, startIndex++) {
+      // fetch full block, include transactions
+      blocksPromises.push(web3.eth.getBlock(startIndex, true))
+    }
+    // wait for block result, for each block , get full tranaction info
+    let resBlocks = await Promise.all(blocksPromises)
+
+    logger.info(`saveBlockTransactionsToMemcAsync, done waiting for promises`)
+
+    for (let blockIndex = 0; blockIndex < resBlocks.length; ) {
+      let block = resBlocks[blockIndex]
+      if (block) {
+        try {
+          logger.info(`saveBlockTransactionsToMemcAsync, getTransactionsFromBlockAsync, for block ${block.number}`)
+          let transactions = await getTransactionsFromBlockAsync(block)
+          if(transactions) {
+            logger.info(`saveBlockTransactionsToMemAsync, update map and advance to next block`)
+            let liveBlock = { 
+              hash : block.hash,
+              number : block.number, 
+              transactions : transactions
+            }
+            await dbUtils.saveLiveBlockAsync(liveBlock)
+            transactionCount += transactions.length
+            blockIndex++
+          } else {
+            logger.error(`saveBlockTransactionsToMemcAsync, transactions not found for block ${block}`)
+          }
+        } catch (error) {
+          logger.info(error)
+        }
+      }
+    }
+  }
+  logger.info(`saveBlockTransactionsToMemcAsync - total transactions ${transactionCount} in block #${startBlock} to block #${endBlock}.`)
 }

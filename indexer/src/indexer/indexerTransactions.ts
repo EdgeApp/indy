@@ -1,6 +1,6 @@
 import * as logger from 'winston'
 import * as blockchainUtils from '../utils/blockchainUtils'
-import { DbUtils } from '../../../common/commonDbUtilsCouchbase'
+import { DbUtils } from '../../../common/commonDbUtils'
 import * as utils from '../../../common/utils'
 import * as consts from '../../../common/consts'
 import { IndexerSettings } from '../indexer/indexerSettings'
@@ -51,6 +51,7 @@ export class IndexerTransactions extends EventEmitter {
     // if not asked for indexing only a specific range from command line parameter, start indexing live blocks
     if (!this.stop && !this.indexSetttings.lastBlockToIndex) {
       await this.startLiveIndexerProcess()
+      // await this.startLiveIndexerProcessMem()
     }
     logger.info('******************************************************************************')
     logger.info('**    indexer stopped.                                                      **')
@@ -249,6 +250,8 @@ export class IndexerTransactions extends EventEmitter {
   async indexBlockRangeTransactions (startBlock: number, endBlock: number) : Promise<boolean> {
     try {
       let transactions = await blockchainUtils.getBlockTransactionsAsync(startBlock, endBlock)
+     // let transactions = await blockchainUtils.getBlockTransactionsAsyncTest(startBlock, endBlock)
+            
       if (!transactions) {
         if(this.stop) {
           logger.info(`indexBlockRangeTransactions stopped`)
@@ -277,7 +280,7 @@ export class IndexerTransactions extends EventEmitter {
       while (transactions.length) {
         let transactionsToSave = transactions.splice(0, configuration.LimitTransactionBlukSave)
         try {
-          await this.dbUtils.saveTransactionsBulkAsync(transactionsToSave, startBlock, endBlock)
+          await this.dbUtils.saveTransactionsBulkAsync(transactionsToSave)
         } catch (error) {
           logger.error('saveTransactions - error in dbutils while saving transactions, abort')
           logger.error('error', error)
@@ -448,4 +451,147 @@ export class IndexerTransactions extends EventEmitter {
     logger.info(`saveAndRemoveHistoryBlocks lastSave ${lastSave}`)
     return lastSave
   }
+
+
+  // method to index incoming blocks
+  // always save 12 live blocks to avoid indexing reorg blocks
+  // save older blocks
+  async startLiveIndexerProcessMem () : Promise<void> {
+    this.indexSetttings = await this.dbUtils.getIndexerSettingsAsync('indexer')
+    let lastSavedBlock = this.indexSetttings.lastBlock
+    let lastHighestBlockNumber = this.indexSetttings.lastBlock
+    let highestBlock = await this.web3.eth.getBlock('latest')
+    let lastRefreshViewBlock = lastSavedBlock
+    // debug patch
+    //let lastHighestBlockNumber = highestBlock.number - 3
+    //let lastSavedBlock = highestBlock.number - 30
+
+    logger.info(`init startLiveIndexerProcess lastSavedBlock ${lastSavedBlock}`)
+    logger.info(`init startLiveIndexerProcess highestBlock.number ${highestBlock.number}`)
+    logger.info(`init startLiveIndexerProcess lastHighestBlockNumber ${lastHighestBlockNumber}`)
+
+    if ((lastSavedBlock + 100) < highestBlock.number) {
+      logger.error(`startLiveIndexerProcess lastSaveBlock ${lastSavedBlock} + 100 < highestBlock ${highestBlock.number}`)
+      logger.error('startLiveIndexerProcess gap is too much, check what went wrong and restart the history indexing')
+      throw (new Error('startLiveIndexerProcess gap is too much, check what went wrong and restart the history indexing'))
+    }
+
+    let startMapTime = process.hrtime()
+
+    logger.info(`init startLiveIndexerProcess, fetch all blocks, from ${lastSavedBlock} to ${highestBlock.number}`)
+    await blockchainUtils.saveBlockTransactionsToMemAsync(lastSavedBlock, highestBlock.number)
+    logger.info(`init startLiveIndexerProcess, all blocks fetche, from ${lastSavedBlock} to ${highestBlock.number}`)
+
+
+    let elapsedMapSeconds = utils.parseHrtimeToSeconds(process.hrtime(startMapTime))
+    logger.info(`init startLiveIndexerProcess blockchainUtils.getBlockTransactionsMemcachedAsync sec: ${elapsedMapSeconds}`)
+
+    while (!this.stop && true) {
+      let startTime = process.hrtime()
+
+      logger.info(`************************************************`)
+      logger.info(`************* live blocks loop *****************`)
+      logger.info(`************************************************`)
+
+      highestBlock = await this.web3.eth.getBlock('latest')
+      logger.info(`live highestBlock.number ${highestBlock.number}`)
+      logger.info(`live lastHighestBlockNumber ${lastHighestBlockNumber}`)
+
+      // update the map to hold the current blocks
+      await this.updateLiveBlocksMem(highestBlock)
+
+      logger.info(`live update lastHighestBlockNumber ${lastHighestBlockNumber}`)
+      lastHighestBlockNumber = highestBlock.number
+
+      logger.info(`live saveAndRemoveHistoryBlocks, highest block: ${highestBlock.number}`)
+      lastSavedBlock = await this.saveAndRemoveHistoryBlocksMem(highestBlock)
+
+      let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(startTime))
+      logger.info(`live update elpase sec: ${elapsedSeconds}`)
+
+      let nextFetch = (consts.liveRefreshDeltaSec - elapsedSeconds) * 1000
+
+      logger.info(`live update indexSetttings`)
+      this.indexSetttings.lastBlock = lastSavedBlock
+      this.indexSetttings.startBlock = lastSavedBlock
+      this.indexSetttings.endBlock = lastHighestBlockNumber
+
+      logger.info(`live lastSavedBlock ${lastSavedBlock}`)
+      logger.info(`live highestBlock.number ${highestBlock.number}`)
+
+      await this.dbUtils.saveIndexerSettingsAsync(this.indexSetttings)
+
+      if(lastSavedBlock - lastRefreshViewBlock > 100) {
+        // make sure to trigger views indexing every 1000 blocks
+        // do not wait for this call, let it run at the backgound. Ignore timeouts.
+        // dbUtils.refreshViews('refreshLiveDummyAccount', lastSavedBlock)
+        lastRefreshViewBlock = lastSavedBlock
+      }
+      logger.info(`invoke again in :${nextFetch} sec`)
+      await utils.timeout(nextFetch)
+    }
+  }
+
+  // update the map to hold the last 12 update blocks
+  // fetch block headers
+  // for every block , check hash, if change, bring block again
+  private async updateLiveBlocksMem (highestBlock: any) : Promise<void> {
+    logger.info(`live updateLiveBlocks highestBlock.number ${highestBlock.number}`)
+
+    let blockHeaders = await blockchainUtils.getBlockHeadersAsync(highestBlock.number)
+    for (let blockIndex = 0; blockIndex < blockHeaders.length; blockIndex++) {
+      try {
+        let block = blockHeaders[blockIndex]
+        let blockEntry = await this.dbUtils.getLiveBlockAsync(block.number)
+        if (blockEntry) {
+          if (blockEntry.blockHash !== block.hash) {
+            logger.info(`live updateLiveBlocks block ${block.number} hash changed, update block`)
+            let updatedBlock = await blockchainUtils.getSingleBlockTransactionsAsync(block.number)
+            await this.dbUtils.saveLiveBlockAsync(updatedBlock) //  will replace
+          }
+        } else {
+          logger.info(`live updateLiveBlocks block ${block.number} not in mem, add it `)
+          let updatedBlock = await blockchainUtils.getSingleBlockTransactionsAsync(block.number)
+          await this.dbUtils.saveLiveBlockAsync(updatedBlock) //  will replace
+        }
+      } catch (error) {
+        logger.error(error)
+        throw error
+      }
+    }
+  }
+
+  // keep the liveTransactionsMap always in size of MaxEphemeralForkBlocks (12)
+  // save old blocks, and remove them from the map
+  private async saveAndRemoveHistoryBlocksMem (highestBlock: any): Promise<number> {
+    let blockNumber = highestBlock.number - configuration.MaxEphemeralForkBlocks
+    let lastSave = blockNumber
+    let blocksInMem = await this.dbUtils.getLiveBlockCountAsync();
+    logger.info(`saveAndRemoveHistoryBlocksMem highestBlock ${highestBlock.number}`)
+    logger.info(`saveAndRemoveHistoryBlocksMem blocksInMem ${blocksInMem}`)
+    // make sure transactions map contain no more than MaxEphemeralForkBlocks (12)
+
+    // get all blocks that are  less than blocknumber
+    // save all block transactions to transaction bucket
+    while (blocksInMem > configuration.MaxEphemeralForkBlocks) {
+      try {
+        let blockEntry = await this.dbUtils.getLiveBlockAsync(blockNumber)
+        if (blockEntry) {
+          logger.info(`saveAndRemoveHistoryBlocksMem save and remove block ${blockNumber}`)
+          await this.saveTransactions(blockEntry.transactions, blockNumber, blockNumber)
+          await this.dbUtils.deleteLiveBlockAsync(blockNumber)
+        } else {
+          logger.info(`saveAndRemoveHistoryBlocks error, block ${blockNumber} not in db`)
+        }
+        blocksInMem--
+        blockNumber--
+      } catch (error) {
+        logger.error(error)
+        throw error
+      }
+    }
+    logger.info(`saveAndRemoveHistoryBlocks lastSave ${lastSave}`)
+    return lastSave
+  }
+
 }
