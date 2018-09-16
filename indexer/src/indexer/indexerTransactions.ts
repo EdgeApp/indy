@@ -277,7 +277,7 @@ export class IndexerTransactions extends EventEmitter {
 
 
     // save transactions in bulks
-    async saveTransactionsRetry (transactions: any, startBlock: number, endBlock: number) : Promise<void> {
+    async saveTransactions (transactions: any, startBlock: number, endBlock: number) : Promise<void> {
       try {
         while (transactions.length) {
           let transactionsToSave = transactions.splice(0, configuration.LimitTransactionBlukSave)
