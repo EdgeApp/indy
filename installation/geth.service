@@ -1,0 +1,13 @@
+[unit]
+Description=Geth app
+After=network.target
+
+[Service]
+User=edgy
+ExecStart=/usr/bin/geth --config /datadrive/geth/gethconfig.toml
+TimeoutSec=30
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

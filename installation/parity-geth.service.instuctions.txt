@@ -1,5 +1,4 @@
-
-
+// same for geth only change 'parity' to 'geth'
 sudo cp parity.service /etc/systemd/system/parity.service
 
 sudo systemctl daemon-reload
@@ -11,5 +10,8 @@ sudo systemctl start parity.service
 sudo systemctl status parity.service
 
 tail -f /var/log/syslog
+
+// if you want to stop for good
+sudo systemctl diable parity.service
 
 
