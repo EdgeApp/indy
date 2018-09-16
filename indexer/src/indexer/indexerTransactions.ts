@@ -1,4 +1,5 @@
 import * as logger from 'winston'
+import * as retry from 'async-retry'
 import * as blockchainUtils from '../utils/blockchainUtils'
 import { DbUtils } from '../../../common/commonDbUtils'
 import * as utils from '../../../common/utils'
@@ -293,6 +294,35 @@ export class IndexerTransactions extends EventEmitter {
       throw (new Error('saveTransactions - error, abort'))
     }
   }
+
+    // save transactions in bulks
+    async saveTransactionsRetry (transactions: any, startBlock: number, endBlock: number) : Promise<void> {
+      try {
+        while (transactions.length) {
+          let transactionsToSave = transactions.splice(0, configuration.LimitTransactionBlukSave)
+          try {
+            await retry(async fetch => {
+              // if anything throws, we retry
+              await this.dbUtils.saveTransactionsBulkAsync(transactionsToSave)
+            }, {
+              retries: 10,
+              minTimeout: 10000,
+              maxTimeout: 60000
+            })
+          } catch (error) {
+            logger.error('saveTransactions - error in dbutils while saving transactions, abort')
+            logger.error('error', error)
+            throw (new Error('saveTransactions - error in dbutils while saving transactions, abort'))
+          }
+        }
+      } catch (error) {
+        logger.error(`saveTransactions error, abort`)
+        logger.error(error)
+        throw (new Error('saveTransactions - error, abort'))
+      }
+    }
+
+
 
   // method to index incoming blocks
   // always save 12 live blocks to avoid indexing reorg blocks

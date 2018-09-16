@@ -26,9 +26,9 @@ export const indexerPort = 3001
 export const restPort = 3000
 
 export const blockReqeusts = 100 // parity parallel block requests. can't be larger than blockstep.
-export const blockStep = 1000 // number of items to save to db in one time . be carefull in non bulk mode. can't be larger than chunksize
+export const blockStep = 1000 // number of BLOCKS to save to db in one time . be carefull in non bulk mode. can't be larger than chunksize
 export const blockChunkSize = 10000 // number of blocks that this indexer is taking to work on everytime
-export const limitTransactionBlukSave = 5000
+export const limitTransactionBlukSave = 5000 // actuall db save bulck - db limit (trasactions)
 export const indexerLogFileName = 'supernode-indexer.log'
 export const restLogFileName = 'supernode-rest.log'
 export const logTimeStampConsole = true

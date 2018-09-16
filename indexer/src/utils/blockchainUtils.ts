@@ -60,7 +60,7 @@ export async function getBlockTransactionsAsync (startBlock: number, endBlock: n
             let txstartTime = process.hrtime()
             let res = await getTransactionsFromBlockAsync(block)
             let elapsedTxSeconds = utils.parseHrtimeToSeconds(process.hrtime(txstartTime))
-            logger.info(`getTransactionsFromBlockAsync for block: ${block.number}, txs: ${res.length}, duration in sec:, ${elapsedTxSeconds}`)
+            // logger.info(`getTransactionsFromBlockAsync for block: ${block.number}, txs: ${res.length}, duration in sec:, ${elapsedTxSeconds}`)
             if (res) {
               transactionCount += res.length
               transactions = transactions.concat(res)
