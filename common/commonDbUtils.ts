@@ -42,7 +42,6 @@ export class DbUtils {
     await Promise.all(transactionPromises)
     let elapsedSeconds = utils.parseHrtimeToSeconds(process.hrtime(totalStartTime))
     logger.info(`saveTransactionsBulkAsync done, ${transactions.length} transactions saved, duration in sec: ${elapsedSeconds}`)
-    await utils.timeout(3000)
   }
 
   // save a single transaction to db

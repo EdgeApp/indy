@@ -31,7 +31,7 @@ tail -f /var/log/syslog
 COUCHDB
 *******
 
-create data direcotry /datadrive/couchdb/data 
+create data direcotry /datadrive/couchbase
 
 install :
 

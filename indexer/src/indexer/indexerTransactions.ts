@@ -275,25 +275,6 @@ export class IndexerTransactions extends EventEmitter {
     }
   }
 
-  // save transactions in bulks
-  async saveTransactions (transactions: any, startBlock: number, endBlock: number) : Promise<void> {
-    try {
-      while (transactions.length) {
-        let transactionsToSave = transactions.splice(0, configuration.LimitTransactionBlukSave)
-        try {
-          await this.dbUtils.saveTransactionsBulkAsync(transactionsToSave)
-        } catch (error) {
-          logger.error('saveTransactions - error in dbutils while saving transactions, abort')
-          logger.error('error', error)
-          throw (new Error('saveTransactions - error in dbutils while saving transactions, abort'))
-        }
-      }
-    } catch (error) {
-      logger.error(`saveTransactions error, abort`)
-      logger.error(error)
-      throw (new Error('saveTransactions - error, abort'))
-    }
-  }
 
     // save transactions in bulks
     async saveTransactionsRetry (transactions: any, startBlock: number, endBlock: number) : Promise<void> {
