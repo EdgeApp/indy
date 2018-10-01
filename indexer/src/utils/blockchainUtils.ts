@@ -282,3 +282,4 @@ export async function saveBlockTransactionsToMemAsync (startBlock: number, endBl
   }
   logger.info(`saveBlockTransactionsToMemcAsync - total transactions ${transactionCount} in block #${startBlock} to block #${endBlock}.`)
 }
+

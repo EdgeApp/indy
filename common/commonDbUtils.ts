@@ -15,20 +15,22 @@ export class DbUtils {
 
   constructor () {
     this.indyCluster = new couchbase.Cluster(configuration.DBUrl)
-    let transactionsBucket = this.indyCluster.openBucket(configuration.BucketName, configuration.BucketPassword)
-    let transactionsLiveBucket = this.indyCluster.openBucket(configuration.LiveBucketName, configuration.LiveBucketPassword)
+    let transactionsBucket = this.indyCluster.openBucket('tx-history', configuration.BucketPassword)
+    let transactionsLiveBucket = this.indyCluster.openBucket('tx-live', configuration.LiveBucketPassword)
 
     transactionsBucket.operationTimeout = 120 * 1000
     transactionsLiveBucket.operationTimeout = 120 * 1000
 
     this.transactionsBucketAsync = promise.promisifyAll(transactionsBucket)
     this.transactionsLiveBucketAsync = promise.promisifyAll(transactionsLiveBucket)
+    this.transactionsLiveManager =  promise.promisifyAll(transactionsLiveBucket.manager())
 
   }
 
   indyCluster : couchbase.Cluster
   transactionsBucketAsync: any
   transactionsLiveBucketAsync: any
+  transactionsLiveManager: any
 
   // bulk transactions functions
   async saveTransactionsBulkAsync (transactions: Array<Transaction>) : Promise<void> {
@@ -69,7 +71,7 @@ export class DbUtils {
       logger.info(`getIndexerSettingsAsync settings for indexer ${indexerDocKeyFull} found, ${JSON.stringify(doc)}`)
       return doc.value
     } catch (error) {
-      logger.error(`getIndexerSettingsAsync error fetching settings for indexer ${indexerDocKeyFull}`)  
+      logger.error(`getIndexerSettingsAsync error fetching settings for indexer ${indexerDocKeyFull}`)
       logger.error(`getIndexerSettingsAsync error : ${error}`)
       throw error
     }
@@ -108,7 +110,7 @@ export class DbUtils {
 
     // important! we are working only in lower case - db save all in lowercase
     let account: string = utils.toLowerCaseSafe(accountAddress)
-    let queryString: string = "SELECT `indy-transactions-bucket`.* from `indy-transactions-bucket` WHERE"
+    let queryString: string = "SELECT `tx-history`.* from `tx-history` WHERE"
     switch (queryType) {
       case AccountQuery.ALL:
         queryString += "(`from` = '" + account + "' OR `to` = '" + account + "') AND (`blockNumber` >= " + startBlock + "AND `blockNumber` <=" + endBlock + ") LIMIT " + limit + ";"
@@ -139,7 +141,7 @@ export class DbUtils {
     let contract: string = utils.toLowerCaseSafe(contractAddress)
 
     // TODO: add LIMIT to query
-    let queryString: string = "SELECT `indy-transactions-bucket`.* from `indy-transactions-bucket` WHERE"
+    let queryString: string = "SELECT `tx-history`.* from `tx-history` WHERE"
     switch (queryType) {
       case AccountQuery.ALL:
         queryString += "(`from` = '" + account + "' OR `to` = '" + account + "' OR `destination` = '" + account + "')"
@@ -199,6 +201,12 @@ export class DbUtils {
     }
   }
 
+
+  async clearAllLiveBlocks(): Promise<void>
+  {
+    await this.transactionsLiveManager.flushAsync()
+  }
+
   // get live block
   async getLiveBlockAsync (blockNumber: number) : Promise<any> {
     logger.info(`getLiveBlockAsync block : ${blockNumber}`)
@@ -210,9 +218,8 @@ export class DbUtils {
     }
   }
 
-  // get live block count
+  // get live block count - queries are not working in memcach buckets - not working
   async getLiveBlockCountAsync () : Promise<any> {
-    // important! we are working only in lower case - db save all in lowercase
     let queryString: string = "SELECT COUNT(*) from `indy-live-bucket`"
     const query = couchbase.N1qlQuery.fromString(queryString)
     try {
@@ -225,6 +232,32 @@ export class DbUtils {
 
   async  initDB () {
     // create indexes here
+    let queryIndexFromString: string = "CREATE INDEX `index_tx_from` ON `tx-history`(`from`,`blockNumber`) WITH {\"defer_build\":true}"
+    let queryIndexToString: string = "CREATE INDEX `index_tx_to` ON `tx-history`(`to`,`blockNumber`) WITH {\"defer_build\":true}"
+    let queryIndexDestinationString: string = "CREATE INDEX `index_tx_destination` ON `tx-history`(`destination`,`blockNumber`) WITH {\"defer_build\":true}"
+    let queryIndexContractString: string = "CREATE INDEX `index_tx_contract` ON `tx-history`(`contractAddress`,`blockNumber`) WITH {\"defer_build\":true}"
+    let queryBuildIndexString: string = "BUILD INDEX ON `tx-history`(`index_tx_from`, `index_tx_destination`, `index_tx_contract`, `index_tx_to`) USING GSI"
+
+    // do for all
+    const queryFrom = couchbase.N1qlQuery.fromString(queryIndexFromString)
+    const queryTo = couchbase.N1qlQuery.fromString(queryIndexToString)
+    const queryDest = couchbase.N1qlQuery.fromString(queryIndexDestinationString)
+    const queryContract = couchbase.N1qlQuery.fromString(queryIndexContractString)
+    const queryBuild = couchbase.N1qlQuery.fromString(queryBuildIndexString)
+
+
+    try {
+      await this.transactionsBucketAsync.queryAsync(queryFrom)
+      await this.transactionsBucketAsync.queryAsync(queryTo)
+      await this.transactionsBucketAsync.queryAsync(queryDest)
+      await this.transactionsBucketAsync.queryAsync(queryContract)
+      await this.transactionsBucketAsync.queryAsync(queryBuild)
+    } catch (error) {
+      logger.error(`error create indexes : ${error}`)
+    }
+
+
+
   }
 }
 

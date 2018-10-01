@@ -3,17 +3,12 @@ export {}
 
 // DB info
 export const dBUrl = 'couchbase://localhost'
-export const bucketName = 'indy-transactions-bucket'
-export const liveBucketName = 'indy-live-bucket'
 
 // take this bucket pass using this command:
 // curl -u edgy:123456 http://localhost:8091/pools/default/buckets > info.txt
-// look into saslPassword value - this is the bucket password 
-export const bucketPassword = 'a9760b0a857c554a52b79a7565132a7a'
-
-export const liveBucketPassword = '715e3233e7a6ded14b492494f6ddd6cc'
-
-
+// search for saslPassword value - this is the bucket password
+export const bucketPassword = '20fd6380e901f0ff03a6b65dec7d3447'
+export const liveBucketPassword = '80cb2c538dd77d0c38e0d28ea215ca4f'
 
 
 // coinfiguration consts

@@ -47,4 +47,4 @@ app.set('indexerTransactions', indexerTransactions)
 
 logger.info(`parent process is pid ${process.pid}`)
 
-app.listen(configuration.Port, () => logger.info(`super node indexer listening on port ${configuration.Port}!`))
+// app.listen(configuration.Port, () => logger.info(`super node indexer listening on port ${configuration.Port}!`))
