@@ -166,7 +166,7 @@ https://nodejs.org/en/download/package-manager/
 bash <(curl https://get.parity.io -Lk) 
 ```
 
-### Install Couchdb
+### Install Choubase
 Install couchdb. Make sure to create admin user on installation.
 
 http://docs.couchdb.org/en/stable/install/unix.html
