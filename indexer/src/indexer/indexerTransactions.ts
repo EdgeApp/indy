@@ -286,8 +286,13 @@ export class IndexerTransactions extends EventEmitter {
               await this.dbUtils.saveTransactionsBulkAsync(transactionsToSave)
             }, {
               retries: 10,
-              minTimeout: 10000,
-              maxTimeout: 60000
+              minTimeout: 60000,
+              maxTimeout: 600000,
+              onRetry: (error) =>
+                {
+                  logger.error('saveTransactions - error in dbutils while saving transactions, retrying')
+                  logger.error('error', error)
+                }
             })
           } catch (error) {
             logger.error('saveTransactions - error in dbutils while saving transactions, abort')
