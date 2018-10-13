@@ -57,6 +57,17 @@ BUILD INDEX ON `tx-history`(`index_tx_from`, `index_tx_destination`, `index_tx_c
 
 DROP INDEX `tx-history`.`index_tx_from` USING GSI;
 
+cat /proc/sys/vm/swappiness
+sudo sysctl vm.swappiness=1
+
+modify /etc/security/limits.conf:
+
+*                hard    nofile          65535
+*                soft    nofile          65535
+root             soft    nofile          65535
+root             hard    nofile          65535
+
+
 
 INDY
 *********
